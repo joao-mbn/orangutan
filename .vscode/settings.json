@@ -1,0 +1,13 @@
+{
+  "typescript.format.semicolons": "insert",
+  "editor.tabSize": 2,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "prettier.ignorePath": ".prettierignore"
+}

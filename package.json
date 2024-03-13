@@ -1,0 +1,14 @@
+{
+  "name": "orangutan",
+  "scripts": {
+    "start": "npx ts-node index.ts"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-prettier": "^0.0.0-empty",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  }
+}
+
