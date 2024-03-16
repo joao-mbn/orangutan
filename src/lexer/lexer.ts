@@ -27,42 +27,88 @@ export class Lexer {
   }
 
   nextToken(): Token {
-    let tokenType: TokenType;
+    this.skipWhitespace();
+
+    return this.isSymbolChar() ? this.getSymbolToken() : this.getNonSymbolToken();
+  }
+
+  skipWhitespace() {
+    while (/\s/.test(this.char)) {
+      this.readChar();
+    }
+  }
+
+  isSymbolChar() {
+    return !/\w/.test(this.char);
+  }
+
+  getSymbolToken(): Token {
     const currentChar = this.char;
 
-    switch (currentChar) {
-      case '=':
-        tokenType = TokenType.ASSIGN;
-        break;
-      case ';':
-        tokenType = TokenType.SEMICOLON;
-        break;
-      case '(':
-        tokenType = TokenType.LPAREN;
-        break;
-      case ')':
-        tokenType = TokenType.RPAREN;
-        break;
-      case ',':
-        tokenType = TokenType.COMMA;
-        break;
-      case '+':
-        tokenType = TokenType.PLUS;
-        break;
-      case '{':
-        tokenType = TokenType.LBRACE;
-        break;
-      case '}':
-        tokenType = TokenType.RBRACE;
-        break;
-      case '':
-        tokenType = TokenType.EOF;
-        break;
-      default:
-        tokenType = TokenType.ILLEGAL;
-    }
+    const singleSymbolTypes = {
+      '=': TokenType.ASSIGN,
+      '+': TokenType.PLUS,
+      '-': TokenType.MINUS,
+      '!': TokenType.BANG,
+      '*': TokenType.ASTERISK,
+      '/': TokenType.SLASH,
+      '<': TokenType.LT,
+      '>': TokenType.GT,
+      ',': TokenType.COMMA,
+      ';': TokenType.SEMICOLON,
+      '(': TokenType.LPAREN,
+      ')': TokenType.RPAREN,
+      '{': TokenType.LBRACE,
+      '}': TokenType.RBRACE,
+      '': TokenType.EOF
+    };
+
+    const twoSymbolTypes = {
+      '==': TokenType.EQ,
+      '!=': TokenType.NOT_EQ
+    };
 
     this.readChar();
-    return { type: tokenType, literal: currentChar };
+
+    const twoSymbolTokenType = twoSymbolTypes[(currentChar + this.char) as keyof typeof twoSymbolTypes];
+    const singleSymbolTokenType = singleSymbolTypes[currentChar as keyof typeof singleSymbolTypes];
+
+    if (twoSymbolTokenType !== undefined) {
+      this.readChar();
+      return { type: twoSymbolTokenType, literal: currentChar + this.char };
+    } else if (singleSymbolTokenType !== undefined) {
+      return { type: singleSymbolTokenType, literal: currentChar };
+    } else {
+      return { type: TokenType.ILLEGAL, literal: currentChar };
+    }
+  }
+
+  getNonSymbolToken(): Token {
+    let literal = this.char;
+
+    this.readChar();
+    while (!this.isSymbolChar()) {
+      literal += this.char;
+      this.readChar();
+    }
+
+    const isNumber = /^\d+$/.test(literal);
+    if (isNumber) {
+      return { type: TokenType.INT, literal };
+    }
+
+    const keywords = {
+      fn: TokenType.FUNCTION,
+      let: TokenType.LET,
+      true: TokenType.TRUE,
+      false: TokenType.FALSE,
+      if: TokenType.IF,
+      else: TokenType.ELSE,
+      return: TokenType.RETURN
+    };
+
+    const type = keywords[literal as keyof typeof keywords] || TokenType.IDENT;
+
+    return { type, literal };
   }
 }

@@ -1,27 +1,42 @@
 export enum TokenType {
-  ILLEGAL, // Unknown token
-  EOF, // End of file
+  ILLEGAL = 'ILLEGAL', // Unknown token
+  EOF = 'EOF', // End of file
 
   // Identifiers + literals
-  IDENT, // add, foobar, x, y, ...
-  INT, // 123456
+  IDENT = 'IDENT', // add, foobar, x, y, ...
+  INT = 'INT', // 123456
 
   // Operators
-  ASSIGN,
-  PLUS,
+  ASSIGN = '=',
+  PLUS = '+',
+  MINUS = '-',
+  BANG = '!',
+  ASTERISK = '*',
+  SLASH = '/',
+
+  LT = '<',
+  GT = '>',
+
+  EQ = '==',
+  NOT_EQ = '!=',
 
   // Delimiters
-  COMMA,
-  SEMICOLON,
+  COMMA = ',',
+  SEMICOLON = ';',
 
-  LPAREN,
-  RPAREN,
-  LBRACE,
-  RBRACE,
+  LPAREN = '(',
+  RPAREN = ')',
+  LBRACE = '{',
+  RBRACE = '}',
 
   // Keywords
-  FUNCTION,
-  LET
+  FUNCTION = 'FUNCTION',
+  LET = 'LET',
+  TRUE = 'TRUE',
+  FALSE = 'FALSE',
+  IF = 'IF',
+  ELSE = 'ELSE',
+  RETURN = 'RETURN'
 }
 
 export type Token = {
