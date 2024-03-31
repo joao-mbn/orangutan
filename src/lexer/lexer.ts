@@ -1,4 +1,4 @@
-import { Token, TokenType } from '../token/token';
+import { Token, TokenType, keywords } from '../token/token';
 
 export class Lexer {
   input: string;
@@ -96,16 +96,6 @@ export class Lexer {
     if (isNumber) {
       return { type: TokenType.INT, literal };
     }
-
-    const keywords = {
-      fn: TokenType.FUNCTION,
-      let: TokenType.LET,
-      true: TokenType.TRUE,
-      false: TokenType.FALSE,
-      if: TokenType.IF,
-      else: TokenType.ELSE,
-      return: TokenType.RETURN
-    };
 
     const type = keywords[literal as keyof typeof keywords] || TokenType.IDENT;
 

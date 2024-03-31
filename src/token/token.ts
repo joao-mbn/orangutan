@@ -43,3 +43,23 @@ export type Token = {
   type: TokenType;
   literal: string;
 };
+
+export const keywords: Record<string, TokenType> = {
+  fn: TokenType.FUNCTION,
+  let: TokenType.LET,
+  true: TokenType.TRUE,
+  false: TokenType.FALSE,
+  if: TokenType.IF,
+  else: TokenType.ELSE,
+  return: TokenType.RETURN
+};
+
+export function getKeywordLiteral(tokenType: TokenType) {
+  const keyword = Object.entries(keywords).find(([, value]) => value === tokenType);
+
+  if (keyword) {
+    return keyword[0];
+  }
+
+  return '';
+}
