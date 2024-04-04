@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { LetStatement } from '../ast/ast';
+import { ExpressionStatement, Identifier, LetStatement } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
 
@@ -72,6 +72,46 @@ return 993322;
       });
 
       assert.strictEqual(parser.errors.length, 0);
+    });
+  });
+
+  describe('parse identifier expressions', () => {
+    const input = 'foobar;';
+
+    const lexer = new Lexer(input);
+    const parser = new Parser(lexer);
+
+    const program = parser.parseProgram();
+
+    if (program == null) {
+      throw new Error('ParseProgram() returned null');
+    }
+
+    it('has no errors', () => {
+      parser.errors.forEach((error) => {
+        console.error(`parser error: ${error}`);
+      });
+
+      assert.strictEqual(parser.errors.length, 0);
+    });
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    it("first statement's expression is identifier", () => {
+      const expressionStatement = program.statements[0] as ExpressionStatement;
+      assert.ok(expressionStatement.expression instanceof Identifier);
+    });
+
+    it('first statement literal is foobar', () => {
+      const identifier = (program.statements[0] as ExpressionStatement).expression as Identifier;
+      assert.strictEqual(identifier.value, 'foobar');
+      assert.strictEqual(identifier.tokenLiteral(), 'foobar');
     });
   });
 });

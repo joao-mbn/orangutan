@@ -1,12 +1,55 @@
-import { Expression, Identifier, LetStatement, Program, ReturnStatement, Statement } from '../ast/ast';
+import {
+  Expression,
+  ExpressionStatement,
+  Identifier,
+  LetStatement,
+  Program,
+  ReturnStatement,
+  Statement
+} from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Token, TokenType } from '../token/token';
+
+enum Precedence {
+  _,
+  LOWEST,
+  EQUALS, // ==
+  LESSGREATER, // > or <
+  SUM, // +
+  PRODUCT, // *
+  PREFIX, // -X or !X
+  CALL // myFunction(X)
+}
 
 export class Parser {
   lexer: Lexer;
   currentToken: Token;
   peekToken: Token;
   errors: string[] = [];
+
+  prefixParseFunctions = {
+    [TokenType.IDENT]: this.parseIdentifier.bind(this),
+    [TokenType.INT]: this.parseIntegerLiteral.bind(this),
+    [TokenType.BANG]: this.parsePrefixExpression.bind(this),
+    [TokenType.MINUS]: this.parsePrefixExpression.bind(this),
+    [TokenType.TRUE]: this.parseBoolean.bind(this),
+    [TokenType.FALSE]: this.parseBoolean.bind(this),
+    [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
+    [TokenType.IF]: this.parseIfExpression.bind(this),
+    [TokenType.FUNCTION]: this.parseLiteral.bind(this)
+  };
+
+  infixParseFunctions = {
+    [TokenType.PLUS]: this.parseInfixExpression.bind(this),
+    [TokenType.MINUS]: this.parseInfixExpression.bind(this),
+    [TokenType.SLASH]: this.parseInfixExpression.bind(this),
+    [TokenType.ASTERISK]: this.parseInfixExpression.bind(this),
+    [TokenType.EQ]: this.parseInfixExpression.bind(this),
+    [TokenType.NOT_EQ]: this.parseInfixExpression.bind(this),
+    [TokenType.LT]: this.parseInfixExpression.bind(this),
+    [TokenType.GT]: this.parseInfixExpression.bind(this),
+    [TokenType.LPAREN]: this.parseCallExpression.bind(this)
+  };
 
   constructor(lexer: Lexer) {
     this.lexer = lexer;
@@ -48,7 +91,7 @@ export class Parser {
       case TokenType.RETURN:
         return this.parseReturnStatement();
       default:
-        return null;
+        return this.parseExpressionStatement();
     }
   }
 
@@ -90,6 +133,28 @@ export class Parser {
     return returnStatement;
   }
 
+  parseExpressionStatement(): ExpressionStatement | null {
+    const expression = this.parseExpression(Precedence.LOWEST);
+    if (expression == null) {
+      return null;
+    }
+
+    const statement = new ExpressionStatement(this.currentToken, expression);
+
+    return statement;
+  }
+
+  parseExpression(precedence: Precedence): Expression | null {
+    const prefix = this.prefixParseFunctions[this.currentToken.type as keyof typeof this.prefixParseFunctions];
+    if (prefix == null) {
+      return null;
+    }
+
+    let leftExpression = prefix();
+
+    return leftExpression;
+  }
+
   currentTokenIs(type: TokenType): boolean {
     return this.currentToken.type === type;
   }
@@ -111,6 +176,42 @@ export class Parser {
   peekError(type: TokenType) {
     const message = `Expected next token to be ${type}, got ${this.peekToken.type} instead`;
     this.errors.push(message);
+  }
+
+  parseIdentifier(): Expression {
+    return new Identifier(this.currentToken.literal);
+  }
+
+  parseIntegerLiteral(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parsePrefixExpression(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseBoolean(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseGroupedExpression(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseIfExpression(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseLiteral(): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseInfixExpression(node: Expression): Expression {
+    throw new Error(' not implemented.');
+  }
+
+  parseCallExpression(node: Expression): Expression {
+    throw new Error(' not implemented.');
   }
 }
 
