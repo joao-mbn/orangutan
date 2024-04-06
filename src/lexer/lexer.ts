@@ -4,7 +4,7 @@ export class Lexer {
   input: string;
   position: number; // Current position in input (points to current char)
   readPosition: number; // Current reading position in input (after current char)
-  char: string; // Byte representation of current char under examination
+  char: string; // Representation of current char under examination
 
   constructor(input: string) {
     this.input = input;
@@ -45,39 +45,39 @@ export class Lexer {
   getSymbolToken(): Token {
     const currentChar = this.char;
 
-    const singleSymbolTypes = {
-      '=': TokenType.ASSIGN,
-      '+': TokenType.PLUS,
-      '-': TokenType.MINUS,
-      '!': TokenType.BANG,
-      '*': TokenType.ASTERISK,
-      '/': TokenType.SLASH,
-      '<': TokenType.LT,
-      '>': TokenType.GT,
-      ',': TokenType.COMMA,
-      ';': TokenType.SEMICOLON,
-      '(': TokenType.LPAREN,
-      ')': TokenType.RPAREN,
-      '{': TokenType.LBRACE,
-      '}': TokenType.RBRACE,
-      '': TokenType.EOF
-    };
+    const singleSymbolTypes: Map<string, TokenType> = new Map([
+      ['=', TokenType.ASSIGN],
+      ['+', TokenType.PLUS],
+      ['-', TokenType.MINUS],
+      ['!', TokenType.BANG],
+      ['*', TokenType.ASTERISK],
+      ['/', TokenType.SLASH],
+      ['<', TokenType.LT],
+      ['>', TokenType.GT],
+      [',', TokenType.COMMA],
+      [';', TokenType.SEMICOLON],
+      ['(', TokenType.LPAREN],
+      [')', TokenType.RPAREN],
+      ['{', TokenType.LBRACE],
+      ['}', TokenType.RBRACE],
+      ['', TokenType.EOF]
+    ]);
 
-    const twoSymbolTypes = {
-      '==': TokenType.EQ,
-      '!=': TokenType.NOT_EQ
-    };
+    const twoSymbolTypes: Map<string, TokenType> = new Map([
+      ['==', TokenType.EQ],
+      ['!=', TokenType.NOT_EQ]
+    ]);
 
     this.readChar();
 
-    const twoSymbolTokenType = twoSymbolTypes[(currentChar + this.char) as keyof typeof twoSymbolTypes];
-    const singleSymbolTokenType = singleSymbolTypes[currentChar as keyof typeof singleSymbolTypes];
+    const twoSymbolToken = twoSymbolTypes.get(currentChar + this.char);
+    const singleSymbolToken = singleSymbolTypes.get(currentChar);
 
-    if (twoSymbolTokenType !== undefined) {
+    if (twoSymbolToken !== undefined) {
       this.readChar();
-      return { type: twoSymbolTokenType, literal: currentChar + this.char };
-    } else if (singleSymbolTokenType !== undefined) {
-      return { type: singleSymbolTokenType, literal: currentChar };
+      return { type: twoSymbolToken, literal: twoSymbolToken };
+    } else if (singleSymbolToken !== undefined) {
+      return { type: singleSymbolToken, literal: currentChar };
     } else {
       return { type: TokenType.ILLEGAL, literal: currentChar };
     }
@@ -102,3 +102,4 @@ export class Lexer {
     return { type, literal };
   }
 }
+
