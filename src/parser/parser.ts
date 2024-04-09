@@ -1,4 +1,5 @@
 import {
+  BooleanLiteral,
   Expression,
   ExpressionStatement,
   Identifier,
@@ -51,7 +52,7 @@ export class Parser {
     [TokenType.FALSE, this.parseBoolean.bind(this)],
     [TokenType.LPAREN, this.parseGroupedExpression.bind(this)],
     [TokenType.IF, this.parseIfExpression.bind(this)],
-    [TokenType.FUNCTION, this.parseLiteral.bind(this)]
+    [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)]
   ]);
 
   infixParseFunctions: Map<TokenType, (node: Expression) => Expression | null> = new Map([
@@ -68,6 +69,10 @@ export class Parser {
 
   constructor(lexer: Lexer) {
     this.lexer = lexer;
+
+    if (lexer.input === '(5 + 5) * 2;') {
+      debugger;
+    }
 
     // making typescript happy
     this.currentToken = { type: TokenType.ILLEGAL, literal: '' };
@@ -124,7 +129,11 @@ export class Parser {
     }
 
     // TODO: We're skipping the expressions until we encounter a semicolon
-    const expression: Expression = { expressionNode: () => {}, tokenLiteral: () => '', asString: () => 'expression' };
+    const expression: Expression = {
+      expressionNode: () => {},
+      tokenLiteral: () => '',
+      asString: () => 'expression'
+    };
     while (!this.currentTokenIs(TokenType.SEMICOLON)) {
       this.nextToken();
     }
@@ -139,7 +148,11 @@ export class Parser {
     this.nextToken();
 
     // TODO: We're skipping the expressions until we encounter a semicolon
-    const returnValue: Expression = { expressionNode: () => {}, tokenLiteral: () => '', asString: () => 'returnValue' };
+    const returnValue: Expression = {
+      expressionNode: () => {},
+      tokenLiteral: () => '',
+      asString: () => 'returnValue'
+    };
     while (!this.currentTokenIs(TokenType.SEMICOLON)) {
       this.nextToken();
     }
@@ -245,18 +258,26 @@ export class Parser {
   }
 
   parseBoolean(): Expression {
-    throw new Error(' not implemented.');
+    return new BooleanLiteral(this.currentToken, this.currentTokenIs(TokenType.TRUE));
   }
 
-  parseGroupedExpression(): Expression {
-    throw new Error(' not implemented.');
+  parseGroupedExpression(): Expression | null {
+    this.nextToken();
+
+    const expression = this.parseExpression(Precedence.LOWEST);
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null;
+    }
+
+    return expression;
   }
 
   parseIfExpression(): Expression {
     throw new Error(' not implemented.');
   }
 
-  parseLiteral(): Expression {
+  parseFunctionLiteral(): Expression {
     throw new Error(' not implemented.');
   }
 
