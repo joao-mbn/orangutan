@@ -103,7 +103,7 @@ export class BlockStatement implements AstNode {
   }
 
   asString(): string {
-    return this.statements.map((statement) => statement.asString()).join('\n');
+    return `{ ${this.statements.map((statement) => statement.asString()).join('\n')} }`;
   }
 
   statementNode(): void {}

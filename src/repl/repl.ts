@@ -1,5 +1,5 @@
 import { Lexer } from '../lexer/lexer';
-import { TokenType } from '../token/token';
+import { Parser } from '../parser/parser';
 
 export function start() {
   // reads user input from the command line
@@ -15,11 +15,16 @@ export function start() {
 
     try {
       const lexer = new Lexer(input);
+      const parser = new Parser(lexer);
+      const program = parser.parseProgram();
 
-      let token = lexer.nextToken();
-      while (token.type !== TokenType.EOF) {
-        console.log(token);
-        token = lexer.nextToken();
+      if (parser.errors.length > 0) {
+        parser.errors.forEach((error) => {
+          console.error(`\t${error}\n`);
+        });
+        throw new Error('Parser error');
+      } else {
+        console.log(program.asString());
       }
     } catch (error) {
       if (error instanceof Error) {
