@@ -94,6 +94,25 @@ export class ExpressionStatement implements Statement {
   }
 }
 
+export class BlockStatement implements AstNode {
+  token: Token = { type: TokenType.LBRACE, literal: getKeywordLiteral(TokenType.LBRACE) };
+  statements: Statement[];
+
+  constructor(statements: Statement[]) {
+    this.statements = statements;
+  }
+
+  asString(): string {
+    return this.statements.map((statement) => statement.asString()).join('\n');
+  }
+
+  statementNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
 export class Identifier implements Expression {
   token: Token = { type: TokenType.IDENT, literal: '' };
   value: string;
@@ -200,3 +219,29 @@ export class InfixExpression implements Expression {
   }
 }
 
+export class IfExpression implements Expression {
+  token: Token = { type: TokenType.IF, literal: getKeywordLiteral(TokenType.IF) };
+  condition: Expression;
+  consequence: BlockStatement;
+  alternative: BlockStatement | null;
+
+  constructor(condition: Expression, consequence: BlockStatement, alternative: BlockStatement | null) {
+    this.condition = condition;
+    this.consequence = consequence;
+    this.alternative = alternative;
+  }
+
+  asString(): string {
+    let result = `if ${this.condition.asString()} ${this.consequence.asString()}`;
+    if (this.alternative) {
+      result += ` else ${this.alternative.asString()}`;
+    }
+    return result;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}

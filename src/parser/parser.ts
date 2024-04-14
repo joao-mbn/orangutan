@@ -1,8 +1,10 @@
 import {
+  BlockStatement,
   BooleanLiteral,
   Expression,
   ExpressionStatement,
   Identifier,
+  IfExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -273,8 +275,58 @@ export class Parser {
     return expression;
   }
 
-  parseIfExpression(): Expression {
-    throw new Error(' not implemented.');
+  parseIfExpression(): Expression | null {
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      return null;
+    }
+
+    this.nextToken();
+
+    const condition = this.parseExpression(Precedence.LOWEST);
+
+    if (!condition) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null;
+    }
+
+    const consequence = this.parseBlockStatement();
+
+    let alternative = null;
+
+    if (this.peekTokenIs(TokenType.ELSE)) {
+      this.nextToken();
+
+      if (!this.expectPeek(TokenType.LBRACE)) {
+        return null;
+      }
+
+      alternative = this.parseBlockStatement();
+    }
+
+    return new IfExpression(condition, consequence, alternative);
+  }
+
+  parseBlockStatement(): BlockStatement {
+    const statements: Statement[] = [];
+
+    this.nextToken();
+
+    while (!this.currentTokenIs(TokenType.RBRACE) && !this.currentTokenIs(TokenType.EOF)) {
+      const statement = this.parseStatement();
+      if (statement != null) {
+        statements.push(statement);
+      }
+      this.nextToken();
+    }
+
+    return new BlockStatement(statements);
   }
 
   parseFunctionLiteral(): Expression {
@@ -301,4 +353,3 @@ export class Parser {
     throw new Error(' not implemented.');
   }
 }
-

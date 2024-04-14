@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  BlockStatement,
   BooleanLiteral,
   Expression,
   ExpressionStatement,
   Identifier,
+  IfExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -80,6 +82,25 @@ describe('Parser', () => {
         testBooleanLiteral(expression as BooleanLiteral, value);
         break;
     }
+  }
+
+  function testInfixExpression(
+    expression: InfixExpression,
+    leftValue: string | number | boolean,
+    operator: string,
+    rightValue: string | number | boolean
+  ) {
+    it('expression is infix expression', () => {
+      assert.ok(expression instanceof InfixExpression);
+    });
+
+    testLiteralExpression(expression.left, leftValue);
+
+    it('expression has correct operator', () => {
+      assert.strictEqual(expression.operator, operator);
+    });
+
+    testLiteralExpression(expression.right, rightValue);
   }
 
   describe('parse let statements', () => {
@@ -244,15 +265,12 @@ return 993322;
         assert.ok(program.statements[0] instanceof ExpressionStatement);
       });
 
-      const infixExpression = (program.statements[0] as ExpressionStatement).expression as InfixExpression;
-
-      testLiteralExpression(infixExpression.left, leftValue);
-
-      it(`first statement's expression has the correct operator`, () => {
-        assert.strictEqual(infixExpression.operator, operator);
-      });
-
-      testLiteralExpression(infixExpression.right, rightValue);
+      testInfixExpression(
+        (program.statements[0] as ExpressionStatement).expression as InfixExpression,
+        leftValue,
+        operator,
+        rightValue
+      );
     });
   });
 
@@ -291,5 +309,74 @@ return 993322;
       });
     });
   });
-});
 
+  describe('if-else expression parsing', () => {
+    const inputs = ['if (x < y) { x }', 'if (x < y) { x } else { y }'];
+
+    inputs.forEach((input, index) => {
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      const expressionStatement = program.statements[0];
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(expressionStatement instanceof ExpressionStatement);
+      });
+
+      const ifExpression = (expressionStatement as ExpressionStatement).expression as IfExpression;
+
+      it('first statement expression is instance of IfExpression', () => {
+        assert.ok(ifExpression instanceof IfExpression);
+      });
+
+      const condition = ifExpression.condition as InfixExpression;
+
+      it('if expression is infix expression', () => {
+        assert.ok(condition instanceof InfixExpression);
+      });
+
+      testInfixExpression(condition, 'x', '<', 'y');
+
+      const consequence = ifExpression.consequence;
+
+      it('consequence has 1 statement', () => {
+        assert.strictEqual(consequence.statements.length, 1);
+      });
+
+      const consequenceStatement = consequence.statements[0] as ExpressionStatement;
+      it('first consequence statement is instance of ExpressionStatement', () => {
+        assert.ok(consequenceStatement instanceof ExpressionStatement);
+      });
+
+      testIdentifier(consequenceStatement.expression as Identifier, 'x');
+
+      if (index === 0) {
+        it('has no alternative', () => {
+          assert.strictEqual(ifExpression.alternative, null);
+        });
+      } else {
+        const alternative = ifExpression.alternative as BlockStatement;
+
+        it('has alternative', () => {
+          assert.ok(alternative instanceof BlockStatement);
+        });
+
+        it('alternative has 1 statement', () => {
+          assert.strictEqual(alternative.statements.length, 1);
+        });
+
+        const alternativeStatement = alternative.statements[0] as ExpressionStatement;
+        it('first alternative statement is instance of ExpressionStatement', () => {
+          assert.ok(alternativeStatement instanceof ExpressionStatement);
+        });
+
+        testIdentifier(alternativeStatement.expression as Identifier, 'y');
+      }
+    });
+  });
+});
