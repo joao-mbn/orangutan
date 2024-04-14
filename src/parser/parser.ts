@@ -1,8 +1,10 @@
 import {
   BlockStatement,
   BooleanLiteral,
+  CallExpression,
   Expression,
   ExpressionStatement,
+  FunctionLiteral,
   Identifier,
   IfExpression,
   InfixExpression,
@@ -35,10 +37,10 @@ const tokenPrecedences: Map<TokenType, Precedence> = new Map([
   [TokenType.PLUS, Precedence.SUM],
   [TokenType.MINUS, Precedence.SUM],
   [TokenType.SLASH, Precedence.PRODUCT],
-  [TokenType.ASTERISK, Precedence.PRODUCT]
+  [TokenType.ASTERISK, Precedence.PRODUCT],
+  [TokenType.LPAREN, Precedence.CALL]
 ]);
 
-// TODO: Remove Expression | null return types and null checks.
 export class Parser {
   lexer: Lexer;
   currentToken: Token;
@@ -71,10 +73,6 @@ export class Parser {
 
   constructor(lexer: Lexer) {
     this.lexer = lexer;
-
-    if (lexer.input === '(5 + 5) * 2;') {
-      debugger;
-    }
 
     // making typescript happy
     this.currentToken = { type: TokenType.ILLEGAL, literal: '' };
@@ -130,18 +128,18 @@ export class Parser {
       return null;
     }
 
-    // TODO: We're skipping the expressions until we encounter a semicolon
-    const expression: Expression = {
-      expressionNode: () => {},
-      tokenLiteral: () => '',
-      asString: () => 'expression'
-    };
-    while (!this.currentTokenIs(TokenType.SEMICOLON)) {
+    this.nextToken();
+
+    const expression = this.parseExpression(Precedence.LOWEST);
+    if (expression == null) {
+      return null;
+    }
+
+    if (this.peekTokenIs(TokenType.SEMICOLON)) {
       this.nextToken();
     }
 
-    const letStatement = new LetStatement(name, expression);
-    return letStatement;
+    return new LetStatement(name, expression);
   }
 
   parseReturnStatement(): ReturnStatement | null {
@@ -149,18 +147,16 @@ export class Parser {
 
     this.nextToken();
 
-    // TODO: We're skipping the expressions until we encounter a semicolon
-    const returnValue: Expression = {
-      expressionNode: () => {},
-      tokenLiteral: () => '',
-      asString: () => 'returnValue'
-    };
-    while (!this.currentTokenIs(TokenType.SEMICOLON)) {
+    const returnValue = this.parseExpression(Precedence.LOWEST);
+    if (returnValue == null) {
+      return null;
+    }
+
+    if (this.peekTokenIs(TokenType.SEMICOLON)) {
       this.nextToken();
     }
 
-    const returnStatement = new ReturnStatement(returnValue);
-    return returnStatement;
+    return new ReturnStatement(returnValue);
   }
 
   parseExpressionStatement(): ExpressionStatement | null {
@@ -329,8 +325,50 @@ export class Parser {
     return new BlockStatement(statements);
   }
 
-  parseFunctionLiteral(): Expression {
-    throw new Error(' not implemented.');
+  parseFunctionLiteral(): Expression | null {
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      return null;
+    }
+
+    const parameters = this.parseFunctionParameters();
+    if (parameters == null) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null;
+    }
+
+    const body = this.parseBlockStatement();
+
+    return new FunctionLiteral(parameters, body);
+  }
+
+  parseFunctionParameters(): Identifier[] | null {
+    const identifiers: Identifier[] = [];
+
+    if (this.peekTokenIs(TokenType.RPAREN)) {
+      this.nextToken();
+      return identifiers;
+    }
+
+    this.nextToken();
+
+    const value = this.currentToken.literal;
+    identifiers.push(new Identifier(value));
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken();
+      this.nextToken();
+      const value = this.currentToken.literal;
+      identifiers.push(new Identifier(value));
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null;
+    }
+
+    return identifiers;
   }
 
   parseInfixExpression(left: Expression): Expression | null {
@@ -349,7 +387,45 @@ export class Parser {
     return new InfixExpression(token, operator, left, right);
   }
 
-  parseCallExpression(node: Expression): Expression {
-    throw new Error(' not implemented.');
+  parseCallExpression(functionExpression: Expression): Expression | null {
+    const args = this.parseCallArguments();
+    if (args == null) {
+      return null;
+    }
+    return new CallExpression(this.currentToken, functionExpression, args);
+  }
+
+  parseCallArguments(): Expression[] | null {
+    const args: Expression[] = [];
+
+    if (this.peekTokenIs(TokenType.RPAREN)) {
+      this.nextToken();
+      return args;
+    }
+
+    this.nextToken();
+
+    const expression = this.parseExpression(Precedence.LOWEST);
+    if (expression == null) {
+      return null;
+    }
+    args.push(expression);
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken();
+      this.nextToken();
+
+      const expression = this.parseExpression(Precedence.LOWEST);
+      if (expression == null) {
+        return null;
+      }
+      args.push(expression);
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null;
+    }
+
+    return args;
   }
 }

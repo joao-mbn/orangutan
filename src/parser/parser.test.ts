@@ -3,14 +3,17 @@ import { describe, it } from 'node:test';
 import {
   BlockStatement,
   BooleanLiteral,
+  CallExpression,
   Expression,
   ExpressionStatement,
+  FunctionLiteral,
   Identifier,
   IfExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
-  PrefixExpression
+  PrefixExpression,
+  ReturnStatement
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
@@ -104,46 +107,53 @@ describe('Parser', () => {
   }
 
   describe('parse let statements', () => {
-    const input = `
-let x = 5;
-let y = 10;
-let foobar = 838383;
-  `;
+    const inputs = [
+      { input: 'let x = 5;', expectedIdentifier: 'x', expectedValue: 5 },
+      { input: 'let y = true;', expectedIdentifier: 'y', expectedValue: true },
+      { input: 'let foobar = y;', expectedIdentifier: 'foobar', expectedValue: 'y' }
+    ];
 
-    const { program, parser } = getProgramAndParser(input);
+    inputs.forEach(({ input, expectedIdentifier, expectedValue }) => {
+      const { program, parser } = getProgramAndParser(input);
 
-    it('has no errors', () => hasNoErrors(parser));
+      it('has no errors', () => hasNoErrors(parser));
 
-    it('has 3 statements', () => {
-      assert.strictEqual(program.statements.length, 3);
-    });
-
-    const expectedIdentifiers = ['x', 'y', 'foobar'];
-
-    program.statements.forEach((statement, index) => {
-      it('has the correct statements', () => {
-        assert.strictEqual(statement.tokenLiteral(), 'let');
-
-        const letStatement = statement as LetStatement;
-        assert.strictEqual(letStatement.name.value, expectedIdentifiers[index]);
-        assert.strictEqual(letStatement.name.tokenLiteral(), expectedIdentifiers[index]);
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
       });
+
+      const letStatement = program.statements[0] as LetStatement;
+      it('first statement is instance of LetStatement', () => {
+        assert.ok(letStatement instanceof LetStatement);
+      });
+
+      testIdentifier(letStatement.name, expectedIdentifier);
+      testLiteralExpression(letStatement.value, expectedValue);
     });
   });
 
   describe('parse return statements', () => {
-    const input = `
-return 5;
-return 10;
-return 993322;
-  `;
+    const inputs = [
+      { input: 'return 5;', expectedValue: 5 },
+      { input: 'return true;', expectedValue: true },
+      { input: 'return foobar;', expectedValue: 'foobar' }
+    ];
 
-    const { program, parser } = getProgramAndParser(input);
+    inputs.forEach(({ input, expectedValue }) => {
+      const { program, parser } = getProgramAndParser(input);
 
-    it('has no errors', () => hasNoErrors(parser));
+      it('has no errors', () => hasNoErrors(parser));
 
-    it('has 3 statements', () => {
-      assert.strictEqual(program.statements.length, 3);
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      const returnStatement = program.statements[0] as ReturnStatement;
+      it('first statement is instance of ReturnStatement', () => {
+        assert.ok(returnStatement instanceof ReturnStatement);
+      });
+
+      testLiteralExpression(returnStatement.returnValue, expectedValue);
     });
   });
 
@@ -296,7 +306,13 @@ return 993322;
       { input: '(5 + 5) * 2;', expected: '((5 + 5) * 2)' },
       { input: '2 / (5 + 5);', expected: '(2 / (5 + 5))' },
       { input: '-(5 + 5);', expected: '(-(5 + 5))' },
-      { input: '!(true == true);', expected: '(!(true == true))' }
+      { input: '!(true == true);', expected: '(!(true == true))' },
+      { input: 'a + add(b * c) + d;', expected: '((a + add((b * c))) + d)' },
+      {
+        input: 'add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));',
+        expected: 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))'
+      },
+      { input: 'add(a + b + c * d / f + g);', expected: 'add((((a + b) + ((c * d) / f)) + g))' }
     ];
 
     tests.forEach(({ input, expected }) => {
@@ -377,6 +393,136 @@ return 993322;
 
         testIdentifier(alternativeStatement.expression as Identifier, 'y');
       }
+    });
+  });
+
+  describe('function literal parsing', () => {
+    const input = 'fn(x, y) { x + y; }';
+
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const functionLiteral = (program.statements[0] as ExpressionStatement).expression as FunctionLiteral;
+
+    it('first statement expression is instance of FunctionLiteral', () => {
+      assert.ok(functionLiteral instanceof FunctionLiteral);
+    });
+
+    it('function literal has 2 parameters', () => {
+      assert.strictEqual(functionLiteral.parameters.length, 2);
+    });
+
+    const expectedParameters = ['x', 'y'];
+    functionLiteral.parameters.forEach((parameter, index) => {
+      testLiteralExpression(parameter, expectedParameters[index]);
+    });
+
+    const body = functionLiteral.body;
+
+    it('function literal has 1 statement in body', () => {
+      assert.strictEqual(body.statements.length, 1);
+    });
+
+    it('body statement is instance of ExpressionStatement', () => {
+      assert.ok(body.statements[0] instanceof ExpressionStatement);
+    });
+
+    testInfixExpression((body.statements[0] as ExpressionStatement).expression as InfixExpression, 'x', '+', 'y');
+  });
+
+  describe('function parameter parsing', () => {
+    const inputs = [
+      { input: 'fn() {};', expected: [] },
+      { input: 'fn(x) {};', expected: ['x'] },
+      { input: 'fn(x, y, z) {};', expected: ['x', 'y', 'z'] }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      const functionLiteral = (program.statements[0] as ExpressionStatement).expression as FunctionLiteral;
+
+      it('function literal has correct number of parameters', () => {
+        assert.strictEqual(functionLiteral.parameters.length, expected.length);
+      });
+
+      expected.forEach((expectedParameter, index) => {
+        testLiteralExpression(functionLiteral.parameters[index], expectedParameter);
+      });
+    });
+  });
+
+  describe('call expression parsing', () => {
+    const input = 'add(1, 2 * 3, 4 + 5);';
+
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const callExpression = (program.statements[0] as ExpressionStatement).expression as CallExpression;
+    it('first statement expression is instance of CallExpression', () => {
+      assert.ok(callExpression instanceof CallExpression);
+    });
+
+    testIdentifier(callExpression.function as Identifier, 'add');
+
+    it('call expression has 3 arguments', () => {
+      assert.strictEqual(callExpression.arguments.length, 3);
+    });
+
+    testLiteralExpression(callExpression.arguments[0], 1);
+    testInfixExpression(callExpression.arguments[1] as InfixExpression, 2, '*', 3);
+    testInfixExpression(callExpression.arguments[2] as InfixExpression, 4, '+', 5);
+  });
+
+  describe('call expression parameter parsing', () => {
+    const inputs = [
+      { input: 'add();', expected: [] },
+      { input: 'add(1);', expected: ['1'] },
+      { input: 'add(1, 2 * 3, 4 + 5);', expected: ['1', '(2 * 3)', '(4 + 5)'] }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      const callExpression = (program.statements[0] as ExpressionStatement).expression as CallExpression;
+
+      it('call expression has correct number of arguments', () => {
+        assert.strictEqual(callExpression.arguments.length, expected.length);
+      });
+
+      expected.forEach((expectedArgument, index) => {
+        assert.strictEqual(callExpression.arguments[index].asString(), expectedArgument);
+      });
     });
   });
 });

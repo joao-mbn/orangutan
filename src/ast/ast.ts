@@ -245,3 +245,46 @@ export class IfExpression implements Expression {
     return this.token.literal;
   }
 }
+
+export class FunctionLiteral implements Expression {
+  token: Token = { type: TokenType.FUNCTION, literal: getKeywordLiteral(TokenType.FUNCTION) };
+  parameters: Identifier[];
+  body: BlockStatement;
+
+  constructor(parameters: Identifier[], body: BlockStatement) {
+    this.parameters = parameters;
+    this.body = body;
+  }
+
+  asString(): string {
+    return `${this.tokenLiteral()}(${this.parameters.map((param) => param.asString()).join(', ')}) ${this.body.asString()}`;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
+export class CallExpression implements Expression {
+  token: Token = { type: TokenType.LPAREN, literal: getKeywordLiteral(TokenType.LPAREN) };
+  function: Expression;
+  arguments: Expression[];
+
+  constructor(token: Token, func: Expression, args: Expression[]) {
+    this.token = token;
+    this.function = func;
+    this.arguments = args;
+  }
+
+  asString(): string {
+    return `${this.function.asString()}(${this.arguments.map((arg) => arg.asString()).join(', ')})`;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
