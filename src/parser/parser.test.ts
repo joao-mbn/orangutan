@@ -18,20 +18,20 @@ import {
 import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
 
-describe('Parser', () => {
-  function getProgramAndParser(input: string) {
-    const lexer = new Lexer(input);
-    const parser = new Parser(lexer);
+export function getProgramAndParser(input: string) {
+  const lexer = new Lexer(input);
+  const parser = new Parser(lexer);
 
-    const program = parser.parseProgram();
+  const program = parser.parseProgram();
 
-    if (program == null) {
-      throw new Error('ParseProgram() returned null');
-    }
-
-    return { program, parser };
+  if (program == null) {
+    throw new Error('ParseProgram() returned null');
   }
 
+  return { program, parser };
+}
+
+describe('Parser', () => {
   function hasNoErrors(parser: Parser) {
     parser.errors.forEach((error) => {
       console.error(`parser error: ${error}`);

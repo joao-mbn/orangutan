@@ -1,3 +1,4 @@
+import { evaluator } from '../evaluator/evaluator';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 
@@ -19,12 +20,14 @@ export function start() {
       const program = parser.parseProgram();
 
       if (parser.errors.length > 0) {
-        parser.errors.forEach((error) => {
-          console.error(`\t${error}\n`);
-        });
+        parser.errors.forEach((error) => console.error(`\t${error}\n`));
         throw new Error('Parser error');
       } else {
-        console.log(program.asString());
+        const evaluated = evaluator(program);
+
+        if (evaluated === null) throw new Error('evaluated is null');
+
+        console.log(evaluated.inspect());
       }
     } catch (error) {
       if (error instanceof Error) {
