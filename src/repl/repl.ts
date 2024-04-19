@@ -1,8 +1,11 @@
 import { evaluator } from '../evaluator/evaluator';
 import { Lexer } from '../lexer/lexer';
+import { Environment } from '../object/environment';
 import { Parser } from '../parser/parser';
 
 export function start() {
+  const environment = new Environment();
+
   // reads user input from the command line
   process.stdout.write('>> ');
   process.stdin.on('data', function (data) {
@@ -23,7 +26,7 @@ export function start() {
         parser.errors.forEach((error) => console.error(`\t${error}\n`));
         throw new Error('Parser error');
       } else {
-        const evaluated = evaluator(program);
+        const evaluated = evaluator(program, environment);
 
         if (evaluated === null) throw new Error('evaluated is null');
 

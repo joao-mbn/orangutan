@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { BooleanObject, IntegerObject, InternalObject } from '../object/object';
+import { Environment } from '../object/environment';
+import { BooleanObject, ErrorObject, FunctionObject, IntegerObject, InternalObject } from '../object/object';
 import { getProgramAndParser } from '../parser/parser.test';
 import { NULL, evaluator } from './evaluator';
 
 describe('Evaluator', () => {
   function testEvaluator(input: string) {
     const { program } = getProgramAndParser(input);
-    const evaluated = evaluator(program);
+    const environment = new Environment();
+    const evaluated = evaluator(program, environment);
 
     if (evaluated === null) {
       throw new Error('evaluated is null');
@@ -148,6 +150,89 @@ describe('Evaluator', () => {
 
     inputs.forEach(({ input, expected }) => {
       if (input === 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }') debugger;
+      const evaluated = testEvaluator(input);
+
+      testIntegerObject(evaluated, expected);
+    });
+  });
+
+  describe('evaluate error handling', () => {
+    const inputs = [
+      { input: '5 + true;', expected: 'type mismatch: INTEGER + BOOLEAN' },
+      { input: '5 + true; 5;', expected: 'type mismatch: INTEGER + BOOLEAN' },
+      { input: '-true', expected: 'unknown operator: -BOOLEAN' },
+      { input: 'true + false;', expected: 'unknown operator: BOOLEAN + BOOLEAN' },
+      { input: '5; true + false; 5', expected: 'unknown operator: BOOLEAN + BOOLEAN' },
+      { input: 'if (10 > 1) { true + false; }', expected: 'unknown operator: BOOLEAN + BOOLEAN' },
+      {
+        input: 'if (10 > 1) { if (10 > 1) { return true + false; } return 1; }',
+        expected: 'unknown operator: BOOLEAN + BOOLEAN'
+      },
+      { input: 'foobar', expected: 'identifier not found: foobar' }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      it(`object is ErrorObject`, () => {
+        assert.ok(evaluated instanceof ErrorObject);
+      });
+
+      it('should have the expected error message', () => {
+        assert.strictEqual(evaluated.inspect(), expected);
+      });
+    });
+  });
+
+  describe('evaluate let statement', () => {
+    const inputs = [
+      { input: 'let a = 5; a;', expected: 5 },
+      { input: 'let a = 5 * 5; a;', expected: 25 },
+      { input: 'let a = 5; let b = a; b;', expected: 5 },
+      { input: 'let a = 5; let b = a; let c = a + b + 5; c;', expected: 15 }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      testIntegerObject(evaluated, expected);
+    });
+  });
+
+  describe('evaluate functions', () => {
+    const input = 'fn(x) { x + 2; };';
+    const evaluated = testEvaluator(input);
+
+    it('object is FunctionObject', () => {
+      assert.ok(evaluated instanceof FunctionObject);
+    });
+
+    const evaluatedFunction = evaluated as FunctionObject;
+
+    it('should have the expected number parameters', () => {
+      assert.strictEqual(evaluatedFunction.parameters.length, 1);
+    });
+
+    it('should have the expected parameter name', () => {
+      assert.strictEqual(evaluatedFunction.parameters[0].value, 'x');
+    });
+
+    it('should have the expected body', () => {
+      assert.strictEqual(evaluatedFunction.body.asString(), '{ (x + 2) }');
+    });
+  });
+
+  describe('evaluate function application', () => {
+    const inputs = [
+      { input: 'let identity = fn(x) { x; }; identity(5);', expected: 5 },
+      { input: 'let identity = fn(x) { return x; }; identity(5);', expected: 5 },
+      { input: 'let double = fn(x) { x * 2; }; double(5);', expected: 10 },
+      { input: 'let add = fn(x, y) { x + y; }; add(5, 5);', expected: 10 },
+      { input: 'let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));', expected: 20 },
+      { input: 'fn(x) { x; }(5)', expected: 5 }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
       const evaluated = testEvaluator(input);
 
       testIntegerObject(evaluated, expected);
