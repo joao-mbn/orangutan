@@ -1,7 +1,8 @@
 export enum ObjectType {
   INTEGER = 'INTEGER',
   BOOLEAN = 'BOOLEAN',
-  NULL = 'NULL'
+  NULL = 'NULL',
+  RETURN_VALUE = 'RETURN_VALUE'
 }
 
 export interface InternalObject {
@@ -40,5 +41,17 @@ export class NullObject implements InternalObject {
 
   inspect() {
     return 'null';
+  }
+}
+
+export class ReturnValueObject implements InternalObject {
+  constructor(public value: InternalObject) {}
+
+  objectType() {
+    return ObjectType.RETURN_VALUE;
+  }
+
+  inspect() {
+    return this.value.inspect();
   }
 }

@@ -8,9 +8,16 @@ import {
   IntegerLiteral,
   PrefixExpression,
   Program,
-  Statement
+  ReturnStatement
 } from '../ast/ast';
-import { BooleanObject, IntegerObject, InternalObject, NullObject, ObjectType } from '../object/object';
+import {
+  BooleanObject,
+  IntegerObject,
+  InternalObject,
+  NullObject,
+  ObjectType,
+  ReturnValueObject
+} from '../object/object';
 
 export const TRUE_OBJECT = new BooleanObject(true);
 export const FALSE_OBJECT = new BooleanObject(false);
@@ -18,7 +25,7 @@ export const NULL = new NullObject();
 
 export function evaluator(node: AstNode): InternalObject {
   if (node instanceof Program) {
-    return evaluateStatements(node.statements);
+    return evaluateProgram(node);
   }
 
   if (node instanceof ExpressionStatement) {
@@ -55,21 +62,44 @@ export function evaluator(node: AstNode): InternalObject {
   }
 
   if (node instanceof BlockStatement) {
-    return evaluateStatements(node.statements);
+    return evaluateBlockStatement(node);
   }
 
   if (node instanceof IfExpression) {
     return evaluateIfExpression(node);
   }
 
+  if (node instanceof ReturnStatement) {
+    const value = evaluator(node.returnValue);
+    return new ReturnValueObject(value);
+  }
+
   return NULL;
 }
 
-function evaluateStatements(statements: Statement[]): InternalObject {
+function evaluateProgram(program: Program): InternalObject {
   let result: InternalObject = NULL;
 
-  for (const statement of statements) {
+  for (const statement of program.statements) {
     result = evaluator(statement);
+
+    if (result instanceof ReturnValueObject) {
+      return result.value;
+    }
+  }
+
+  return result;
+}
+
+function evaluateBlockStatement(node: BlockStatement): InternalObject {
+  let result: InternalObject = NULL;
+
+  for (const statement of node.statements) {
+    result = evaluator(statement);
+
+    if (result instanceof ReturnValueObject) {
+      return result;
+    }
   }
 
   return result;

@@ -109,15 +109,13 @@ describe('Evaluator', () => {
     ];
 
     inputs.forEach(({ input, expected }) => {
-      if (input === '!5') debugger;
-
       const evaluated = testEvaluator(input);
 
       testBooleanObject(evaluated, expected);
     });
   });
 
-  describe('test if-else expressions', () => {
+  describe('evaluate if expressions', () => {
     const inputs = [
       { input: 'if (true) { 10 }', expected: 10 },
       { input: 'if (false) { 10 }', expected: null },
@@ -136,6 +134,23 @@ describe('Evaluator', () => {
       } else {
         testIntegerObject(evaluated, expected);
       }
+    });
+  });
+
+  describe('evaluate return statement', () => {
+    const inputs = [
+      { input: 'return 10;', expected: 10 },
+      { input: 'return 10; 9;', expected: 10 },
+      { input: 'return 2 * 5; 9;', expected: 10 },
+      { input: '9; return 2 * 5; 9;', expected: 10 },
+      { input: 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }', expected: 10 }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      if (input === 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }') debugger;
+      const evaluated = testEvaluator(input);
+
+      testIntegerObject(evaluated, expected);
     });
   });
 });
