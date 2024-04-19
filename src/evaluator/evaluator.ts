@@ -1,7 +1,9 @@
 import {
   AstNode,
+  BlockStatement,
   BooleanLiteral,
   ExpressionStatement,
+  IfExpression,
   InfixExpression,
   IntegerLiteral,
   PrefixExpression,
@@ -10,9 +12,9 @@ import {
 } from '../ast/ast';
 import { BooleanObject, IntegerObject, InternalObject, NullObject, ObjectType } from '../object/object';
 
-const TRUE_OBJECT = new BooleanObject(true);
-const FALSE_OBJECT = new BooleanObject(false);
-const NULL = new NullObject();
+export const TRUE_OBJECT = new BooleanObject(true);
+export const FALSE_OBJECT = new BooleanObject(false);
+export const NULL = new NullObject();
 
 export function evaluator(node: AstNode): InternalObject {
   if (node instanceof Program) {
@@ -52,6 +54,14 @@ export function evaluator(node: AstNode): InternalObject {
     return evaluateInfixExpression(node.operator, left, right);
   }
 
+  if (node instanceof BlockStatement) {
+    return evaluateStatements(node.statements);
+  }
+
+  if (node instanceof IfExpression) {
+    return evaluateIfExpression(node);
+  }
+
   return NULL;
 }
 
@@ -63,10 +73,6 @@ function evaluateStatements(statements: Statement[]): InternalObject {
   }
 
   return result;
-}
-
-function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
-  return value ? TRUE_OBJECT : FALSE_OBJECT;
 }
 
 function evaluatePrefixExpression(operator: string, right: InternalObject): InternalObject {
@@ -81,19 +87,7 @@ function evaluatePrefixExpression(operator: string, right: InternalObject): Inte
 }
 
 function evaluateBangOperatorExpression(right: InternalObject): BooleanObject {
-  if (right === TRUE_OBJECT) {
-    return FALSE_OBJECT;
-  }
-
-  if (right === FALSE_OBJECT) {
-    return TRUE_OBJECT;
-  }
-
-  if (right === NULL) {
-    return TRUE_OBJECT;
-  }
-
-  return FALSE_OBJECT;
+  return isTruthy(right) ? FALSE_OBJECT : TRUE_OBJECT;
 }
 
 function evaluateMinusPrefixOperatorExpression(right: InternalObject): InternalObject {
@@ -107,7 +101,7 @@ function evaluateMinusPrefixOperatorExpression(right: InternalObject): InternalO
 }
 
 function evaluateInfixExpression(operator: string, left: InternalObject, right: InternalObject): InternalObject {
-  if (left.objectType() === ObjectType.INTEGER || right.objectType() === ObjectType.INTEGER) {
+  if (left.objectType() === ObjectType.INTEGER && right.objectType() === ObjectType.INTEGER) {
     return evaluateIntegerInfixExpression(operator, left, right);
   }
 
@@ -146,4 +140,36 @@ function evaluateIntegerInfixExpression(operator: string, left: InternalObject, 
     default:
       return NULL;
   }
+}
+
+function evaluateIfExpression(node: IfExpression): InternalObject {
+  const condition = evaluator(node.condition);
+
+  if (isTruthy(condition)) {
+    return evaluator(node.consequence);
+  } else if (node.alternative !== null) {
+    return evaluator(node.alternative);
+  }
+
+  return NULL;
+}
+
+function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
+  return value ? TRUE_OBJECT : FALSE_OBJECT;
+}
+
+function isTruthy(object: InternalObject): boolean {
+  if (object === NULL) {
+    return false;
+  }
+
+  if (object === TRUE_OBJECT) {
+    return true;
+  }
+
+  if (object === FALSE_OBJECT) {
+    return false;
+  }
+
+  return true;
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { BooleanObject, IntegerObject, InternalObject } from '../object/object';
 import { getProgramAndParser } from '../parser/parser.test';
-import { evaluator } from './evaluator';
+import { NULL, evaluator } from './evaluator';
 
 describe('Evaluator', () => {
   function testEvaluator(input: string) {
@@ -33,6 +33,12 @@ describe('Evaluator', () => {
 
     it(`should evaluate to ${expected}`, () => {
       assert.strictEqual(object.inspect(), expected.toString());
+    });
+  }
+
+  function testNullObject(object: InternalObject) {
+    it('object is NULL', () => {
+      assert.strictEqual(object, NULL);
     });
   }
 
@@ -108,6 +114,28 @@ describe('Evaluator', () => {
       const evaluated = testEvaluator(input);
 
       testBooleanObject(evaluated, expected);
+    });
+  });
+
+  describe('test if-else expressions', () => {
+    const inputs = [
+      { input: 'if (true) { 10 }', expected: 10 },
+      { input: 'if (false) { 10 }', expected: null },
+      { input: 'if (1) { 10 }', expected: 10 },
+      { input: 'if (1 < 2) { 10 }', expected: 10 },
+      { input: 'if (1 > 2) { 10 }', expected: null },
+      { input: 'if (1 > 2) { 10 } else { 20 }', expected: 20 },
+      { input: 'if (1 < 2) { 10 } else { 20 }', expected: 10 }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      if (expected === null) {
+        testNullObject(evaluated);
+      } else {
+        testIntegerObject(evaluated, expected);
+      }
     });
   });
 });
