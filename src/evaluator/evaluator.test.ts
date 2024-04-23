@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { Environment } from '../object/environment';
-import { BooleanObject, ErrorObject, FunctionObject, IntegerObject, InternalObject } from '../object/object';
+import {
+  BooleanObject,
+  ErrorObject,
+  FunctionObject,
+  IntegerObject,
+  InternalObject,
+  StringObject
+} from '../object/object';
 import { getProgramAndParser } from '../parser/parser.test';
 import { NULL, evaluator } from './evaluator';
 
@@ -149,7 +156,6 @@ describe('Evaluator', () => {
     ];
 
     inputs.forEach(({ input, expected }) => {
-      if (input === 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }') debugger;
       const evaluated = testEvaluator(input);
 
       testIntegerObject(evaluated, expected);
@@ -168,7 +174,8 @@ describe('Evaluator', () => {
         input: 'if (10 > 1) { if (10 > 1) { return true + false; } return 1; }',
         expected: 'unknown operator: BOOLEAN + BOOLEAN'
       },
-      { input: 'foobar', expected: 'identifier not found: foobar' }
+      { input: 'foobar', expected: 'identifier not found: foobar' },
+      { input: '"Hello" - "World"', expected: 'unknown operator: STRING - STRING' }
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -238,4 +245,31 @@ describe('Evaluator', () => {
       testIntegerObject(evaluated, expected);
     });
   });
+
+  describe('evaluate strings', () => {
+    const input = '"Hello World!"';
+    const evaluated = testEvaluator(input);
+
+    it('object is StringObject', () => {
+      assert.ok(evaluated instanceof StringObject);
+    });
+
+    it(`should evaluate to input`, () => {
+      assert.strictEqual(evaluated.inspect(), 'Hello World!');
+    });
+  });
+
+  describe('evaluate string concatenation', () => {
+    const input = '"Hello" + " " + "World!"';
+    const evaluated = testEvaluator(input);
+
+    it('object is StringObject', () => {
+      assert.ok(evaluated instanceof StringObject);
+    });
+
+    it(`should evaluate to input`, () => {
+      assert.strictEqual(evaluated.inspect(), 'Hello World!');
+    });
+  });
 });
+

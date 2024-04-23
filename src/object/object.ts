@@ -7,7 +7,8 @@ export enum ObjectType {
   NULL = 'NULL',
   RETURN_VALUE = 'RETURN_VALUE',
   ERROR_OBJECT = 'ERROR_OBJECT',
-  FUNCTION_OBJECT = 'FUNCTION_OBJECT'
+  FUNCTION_OBJECT = 'FUNCTION_OBJECT',
+  STRING = 'STRING'
 }
 
 export interface InternalObject {
@@ -46,6 +47,18 @@ export class NullObject implements InternalObject {
 
   inspect() {
     return 'null';
+  }
+}
+
+export class StringObject implements InternalObject {
+  constructor(public value: string) {}
+
+  objectType() {
+    return ObjectType.STRING;
+  }
+
+  inspect() {
+    return this.value;
   }
 }
 
@@ -88,3 +101,4 @@ export class FunctionObject implements InternalObject {
     return `fn(${this.parameters.map((i) => i.asString()).join(', ')}) ${this.body.asString()}`;
   }
 }
+

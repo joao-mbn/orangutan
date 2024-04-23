@@ -173,6 +173,24 @@ export class BooleanLiteral implements Expression {
   }
 }
 
+export class StringLiteral implements Expression {
+  token: Token = { type: TokenType.STRING, literal: '' };
+
+  constructor(value: string) {
+    this.token.literal = value;
+  }
+
+  asString(): string {
+    return this.token.literal;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
 export class PrefixExpression implements Expression {
   token: Token;
   operator: string;
@@ -288,3 +306,4 @@ export class CallExpression implements Expression {
     return this.token.literal;
   }
 }
+

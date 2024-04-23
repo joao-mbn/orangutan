@@ -26,10 +26,92 @@ export class Lexer {
     this.readPosition++;
   }
 
+  peekChar() {
+    if (this.readPosition >= this.input.length) {
+      return '';
+    } else {
+      return this.input[this.readPosition];
+    }
+  }
+
   nextToken(): Token {
     this.skipWhitespace();
 
-    return this.isSymbolChar() ? this.getSymbolToken() : this.getNonSymbolToken();
+    let token: Token;
+
+    switch (this.char) {
+      case '=':
+        if (this.peekChar() === '=') {
+          const eq = this.char;
+          this.readChar();
+          token = { type: TokenType.EQ, literal: eq + this.char };
+        } else {
+          token = { type: TokenType.ASSIGN, literal: this.char };
+        }
+        break;
+      case '+':
+        token = { type: TokenType.PLUS, literal: this.char };
+        break;
+      case '-':
+        token = { type: TokenType.MINUS, literal: this.char };
+        break;
+      case '!':
+        if (this.peekChar() === '=') {
+          const bang = this.char;
+          this.readChar();
+          token = { type: TokenType.NOT_EQ, literal: bang + this.char };
+        } else {
+          token = { type: TokenType.BANG, literal: this.char };
+        }
+        break;
+      case '*':
+        token = { type: TokenType.ASTERISK, literal: this.char };
+        break;
+      case '/':
+        token = { type: TokenType.SLASH, literal: this.char };
+        break;
+      case '<':
+        token = { type: TokenType.LT, literal: this.char };
+        break;
+      case '>':
+        token = { type: TokenType.GT, literal: this.char };
+        break;
+      case ',':
+        token = { type: TokenType.COMMA, literal: this.char };
+        break;
+      case ';':
+        token = { type: TokenType.SEMICOLON, literal: this.char };
+        break;
+      case '(':
+        token = { type: TokenType.LPAREN, literal: this.char };
+        break;
+      case ')':
+        token = { type: TokenType.RPAREN, literal: this.char };
+        break;
+      case '{':
+        token = { type: TokenType.LBRACE, literal: this.char };
+        break;
+      case '}':
+        token = { type: TokenType.RBRACE, literal: this.char };
+        break;
+      case '"':
+        token = this.readString();
+        break;
+      case '':
+        token = { type: TokenType.EOF, literal: '' };
+        break;
+      default:
+        if (this.isLetterOrUnderscore(this.char)) {
+          token = this.readIdentifier();
+        } else if (this.isDigit(this.char)) {
+          token = this.readInteger();
+        } else {
+          token = { type: TokenType.ILLEGAL, literal: this.char };
+        }
+    }
+
+    this.readChar();
+    return token;
   }
 
   skipWhitespace() {
@@ -38,68 +120,51 @@ export class Lexer {
     }
   }
 
-  isSymbolChar() {
-    return !/\w/.test(this.char);
+  isLetterOrUnderscore(char: string) {
+    return /[a-zA-Z_]/.test(char);
   }
 
-  getSymbolToken(): Token {
-    const currentChar = this.char;
-
-    const singleSymbolTypes: Map<string, TokenType> = new Map([
-      ['=', TokenType.ASSIGN],
-      ['+', TokenType.PLUS],
-      ['-', TokenType.MINUS],
-      ['!', TokenType.BANG],
-      ['*', TokenType.ASTERISK],
-      ['/', TokenType.SLASH],
-      ['<', TokenType.LT],
-      ['>', TokenType.GT],
-      [',', TokenType.COMMA],
-      [';', TokenType.SEMICOLON],
-      ['(', TokenType.LPAREN],
-      [')', TokenType.RPAREN],
-      ['{', TokenType.LBRACE],
-      ['}', TokenType.RBRACE],
-      ['', TokenType.EOF]
-    ]);
-
-    const twoSymbolTypes: Map<string, TokenType> = new Map([
-      ['==', TokenType.EQ],
-      ['!=', TokenType.NOT_EQ]
-    ]);
-
-    this.readChar();
-
-    const twoSymbolToken = twoSymbolTypes.get(currentChar + this.char);
-    const singleSymbolToken = singleSymbolTypes.get(currentChar);
-
-    if (twoSymbolToken !== undefined) {
-      this.readChar();
-      return { type: twoSymbolToken, literal: twoSymbolToken };
-    } else if (singleSymbolToken !== undefined) {
-      return { type: singleSymbolToken, literal: currentChar };
-    } else {
-      return { type: TokenType.ILLEGAL, literal: currentChar };
-    }
+  isDigit(char: string) {
+    return /\d/.test(char);
   }
 
-  getNonSymbolToken(): Token {
+  readIdentifier(): Token {
     let literal = this.char;
 
-    this.readChar();
-    while (!this.isSymbolChar()) {
-      literal += this.char;
+    while (this.isLetterOrUnderscore(this.peekChar())) {
       this.readChar();
+      literal += this.char;
     }
 
-    const isNumber = /^\d+$/.test(literal);
-    if (isNumber) {
-      return { type: TokenType.INT, literal };
-    }
-
-    const type = keywords[literal as keyof typeof keywords] || TokenType.IDENT;
+    const type = keywords.get(literal) || TokenType.IDENT;
 
     return { type, literal };
+  }
+
+  readInteger(): Token {
+    let literal = this.char;
+
+    while (this.isDigit(this.peekChar())) {
+      this.readChar();
+      literal += this.char;
+    }
+
+    return { type: TokenType.INT, literal };
+  }
+
+  readString(): Token {
+    this.readChar(); // Skip opening quote
+
+    let literal = this.char;
+
+    while (this.peekChar() !== '"') {
+      this.readChar();
+      literal += this.char;
+    }
+
+    this.readChar(); // Skip closing quote (")
+
+    return { type: TokenType.STRING, literal };
   }
 }
 

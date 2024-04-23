@@ -21,7 +21,14 @@ if (5 < 10) {
   return true;
 } else {
   return false;
-}`;
+}
+
+10 == 10;
+10 != 9;
+
+"foobar"
+"foo bar"
+`;
 
   const tests: Token[] = [
     { type: TokenType.LET, literal: 'let' },
@@ -89,6 +96,16 @@ if (5 < 10) {
     { type: TokenType.FALSE, literal: 'false' },
     { type: TokenType.SEMICOLON, literal: ';' },
     { type: TokenType.RBRACE, literal: '}' },
+    { type: TokenType.INT, literal: '10' },
+    { type: TokenType.EQ, literal: '==' },
+    { type: TokenType.INT, literal: '10' },
+    { type: TokenType.SEMICOLON, literal: ';' },
+    { type: TokenType.INT, literal: '10' },
+    { type: TokenType.NOT_EQ, literal: '!=' },
+    { type: TokenType.INT, literal: '9' },
+    { type: TokenType.SEMICOLON, literal: ';' },
+    { type: TokenType.STRING, literal: 'foobar' },
+    { type: TokenType.STRING, literal: 'foo bar' },
     { type: TokenType.EOF, literal: '' }
   ];
 
@@ -102,3 +119,4 @@ if (5 < 10) {
     });
   }
 });
+

@@ -13,7 +13,8 @@ import {
   PrefixExpression,
   Program,
   ReturnStatement,
-  Statement
+  Statement,
+  StringLiteral
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Token, TokenType } from '../token/token';
@@ -56,7 +57,8 @@ export class Parser {
     [TokenType.FALSE, this.parseBoolean.bind(this)],
     [TokenType.LPAREN, this.parseGroupedExpression.bind(this)],
     [TokenType.IF, this.parseIfExpression.bind(this)],
-    [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)]
+    [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)],
+    [TokenType.STRING, this.parseStringLiteral.bind(this)]
   ]);
 
   infixParseFunctions: Map<TokenType, (node: Expression) => Expression | null> = new Map([
@@ -428,4 +430,9 @@ export class Parser {
 
     return args;
   }
+
+  parseStringLiteral(): Expression | null {
+    return new StringLiteral(this.currentToken.literal);
+  }
 }
+

@@ -5,6 +5,7 @@ export enum TokenType {
   // Identifiers + literals
   IDENT = 'IDENT', // add, foobar, x, y, ...
   INT = 'INT', // 123456
+  STRING = 'STRING',
 
   // Operators
   ASSIGN = '=',
@@ -44,22 +45,25 @@ export type Token = {
   literal: string;
 };
 
-export const keywords: Record<string, TokenType> = {
-  fn: TokenType.FUNCTION,
-  let: TokenType.LET,
-  true: TokenType.TRUE,
-  false: TokenType.FALSE,
-  if: TokenType.IF,
-  else: TokenType.ELSE,
-  return: TokenType.RETURN
-};
+export const keywords: Map<string, TokenType> = new Map([
+  ['fn', TokenType.FUNCTION],
+  ['let', TokenType.LET],
+  ['true', TokenType.TRUE],
+  ['false', TokenType.FALSE],
+  ['if', TokenType.IF],
+  ['else', TokenType.ELSE],
+  ['return', TokenType.RETURN]
+]);
 
 export function getKeywordLiteral(tokenType: TokenType) {
-  const keyword = Object.entries(keywords).find(([, value]) => value === tokenType);
+  let literal = '';
 
-  if (keyword) {
-    return keyword[0];
-  }
+  keywords.forEach((value, key) => {
+    if (value === tokenType) {
+      literal = key;
+    }
+  });
 
-  return '';
+  return literal;
 }
+

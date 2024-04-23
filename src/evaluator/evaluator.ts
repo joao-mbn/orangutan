@@ -13,7 +13,8 @@ import {
   LetStatement,
   PrefixExpression,
   Program,
-  ReturnStatement
+  ReturnStatement,
+  StringLiteral
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 import {
@@ -24,7 +25,8 @@ import {
   InternalObject,
   NullObject,
   ObjectType,
-  ReturnValueObject
+  ReturnValueObject,
+  StringObject
 } from '../object/object';
 
 export const TRUE_OBJECT = new BooleanObject(true);
@@ -42,6 +44,10 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
 
   if (node instanceof IntegerLiteral) {
     return new IntegerObject(node.value);
+  }
+
+  if (node instanceof StringLiteral) {
+    return new StringObject(node.tokenLiteral());
   }
 
   if (node instanceof BooleanLiteral) {
@@ -186,6 +192,10 @@ function evaluateInfixExpression(operator: string, left: InternalObject, right: 
     return evaluateIntegerInfixExpression(operator, left, right);
   }
 
+  if (left.objectType() === ObjectType.STRING && right.objectType() === ObjectType.STRING) {
+    return evaluateStringInfixExpression(operator, left, right);
+  }
+
   if (operator === '==') {
     return nativeBooleanToBooleanObject(left === right);
   }
@@ -221,6 +231,17 @@ function evaluateIntegerInfixExpression(operator: string, left: InternalObject, 
     default:
       return newError(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
   }
+}
+
+function evaluateStringInfixExpression(operator: string, left: InternalObject, right: InternalObject): InternalObject {
+  const leftValue = (left as StringObject).value;
+  const rightValue = (right as StringObject).value;
+
+  if (operator !== '+') {
+    return newError(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
+  }
+
+  return new StringObject(leftValue + rightValue);
 }
 
 function evaluateIfExpression(node: IfExpression, environment: Environment): InternalObject {
@@ -324,3 +345,4 @@ function unwrapReturnValue(object: InternalObject): InternalObject {
 function newEnvironment(outer?: Environment): Environment {
   return new Environment(outer);
 }
+

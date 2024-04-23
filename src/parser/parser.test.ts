@@ -13,7 +13,8 @@ import {
   IntegerLiteral,
   LetStatement,
   PrefixExpression,
-  ReturnStatement
+  ReturnStatement,
+  StringLiteral
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
@@ -525,4 +526,31 @@ describe('Parser', () => {
       });
     });
   });
+
+  describe('string literal parsing', () => {
+    const input = '"hello world";';
+
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const expression = (program.statements[0] as ExpressionStatement).expression as StringLiteral;
+
+    it('expression is instance of StringLiteral', () => {
+      assert.ok(expression instanceof StringLiteral);
+    });
+
+    it('expression value is correct', () => {
+      assert.strictEqual(expression.tokenLiteral(), 'hello world');
+    });
+  });
 });
+
