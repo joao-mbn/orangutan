@@ -155,16 +155,13 @@ export class Lexer {
   readString(): Token {
     this.readChar(); // Skip opening quote
 
-    let literal = this.char;
+    let literal = '';
 
-    while (this.peekChar() !== '"') {
-      this.readChar();
+    while (this.char !== '"') {
       literal += this.char;
+      this.readChar();
     }
-
-    this.readChar(); // Skip closing quote (")
 
     return { type: TokenType.STRING, literal };
   }
 }
-

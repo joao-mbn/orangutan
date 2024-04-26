@@ -28,6 +28,7 @@ if (5 < 10) {
 
 "foobar"
 "foo bar"
+""
 `;
 
   const tests: Token[] = [
@@ -106,6 +107,7 @@ if (5 < 10) {
     { type: TokenType.SEMICOLON, literal: ';' },
     { type: TokenType.STRING, literal: 'foobar' },
     { type: TokenType.STRING, literal: 'foo bar' },
+    { type: TokenType.STRING, literal: '' },
     { type: TokenType.EOF, literal: '' }
   ];
 
@@ -119,4 +121,3 @@ if (5 < 10) {
     });
   }
 });
-
