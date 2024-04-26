@@ -19,6 +19,7 @@ import {
 import { Environment } from '../object/environment';
 import {
   BooleanObject,
+  BuiltinFunctionObject,
   ErrorObject,
   FunctionObject,
   IntegerObject,
@@ -32,6 +33,20 @@ import {
 export const TRUE_OBJECT = new BooleanObject(true);
 export const FALSE_OBJECT = new BooleanObject(false);
 export const NULL = new NullObject();
+
+export const LEN = new BuiltinFunctionObject((...args: InternalObject[]) => {
+  if (args.length !== 1) {
+    return newError(`wrong number of arguments. got=${args.length}, want=1`);
+  }
+
+  if (!(args[0] instanceof StringObject)) {
+    return newError(`argument to 'len' not supported, got ${args[0].objectType()}`);
+  }
+
+  const arg = args[0] as StringObject;
+  return new IntegerObject(arg.value.length);
+});
+export const builtIns = new Map<string, BuiltinFunctionObject>([['len', LEN]]);
 
 export function evaluator(node: AstNode, environment: Environment): InternalObject {
   if (node instanceof Program) {
@@ -110,9 +125,9 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
   }
 
   if (node instanceof CallExpression) {
-    const func = evaluator(node.function, environment);
-    if (isError(func)) {
-      return func;
+    const fn = evaluator(node.function, environment);
+    if (isError(fn)) {
+      return fn;
     }
 
     const args = evaluateExpressions(node.arguments, environment);
@@ -120,7 +135,7 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
       return args[0];
     }
 
-    return applyFunction(func, args);
+    return applyFunction(fn, args);
   }
 
   return NULL;
@@ -262,11 +277,16 @@ function evaluateIfExpression(node: IfExpression, environment: Environment): Int
 
 function evaluateIdentifier(node: Identifier, environment: Environment): InternalObject {
   const value = environment.get(node.value);
-  if (value === undefined) {
-    return new ErrorObject(`identifier not found: ${node.value}`);
+  if (value !== undefined) {
+    return value;
   }
 
-  return value;
+  const builtin = builtIns.get(node.value);
+  if (builtin !== undefined) {
+    return builtin;
+  }
+
+  return new ErrorObject(`identifier not found: ${node.value}`);
 }
 
 function evaluateExpressions(expressions: Expression[], environment: Environment): InternalObject[] {
@@ -285,15 +305,19 @@ function evaluateExpressions(expressions: Expression[], environment: Environment
   return results;
 }
 
-function applyFunction(func: InternalObject, args: InternalObject[]): InternalObject {
-  if (!(func instanceof FunctionObject)) {
-    return newError(`not a function: ${func.objectType()}`);
+function applyFunction(fn: InternalObject, args: InternalObject[]): InternalObject {
+  if (fn instanceof FunctionObject) {
+    const extendedEnv = extendFunctionEnvironment(fn, args);
+    const evaluated = evaluator(fn.body, extendedEnv);
+
+    return unwrapReturnValue(evaluated);
   }
 
-  const extendedEnv = extendFunctionEnvironment(func, args);
-  const evaluated = evaluator(func.body, extendedEnv);
+  if (fn instanceof BuiltinFunctionObject) {
+    return fn.fn(...args);
+  }
 
-  return unwrapReturnValue(evaluated);
+  return newError(`not a function: ${fn.objectType()}`);
 }
 
 function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
@@ -324,10 +348,10 @@ function isError(object: InternalObject): object is ErrorObject {
   return object instanceof ErrorObject;
 }
 
-function extendFunctionEnvironment(func: FunctionObject, args: InternalObject[]): Environment {
-  const environment = newEnvironment(func.environment);
+function extendFunctionEnvironment(fn: FunctionObject, args: InternalObject[]): Environment {
+  const environment = newEnvironment(fn.environment);
 
-  func.parameters.forEach((parameter, index) => {
+  fn.parameters.forEach((parameter, index) => {
     environment.set(parameter.value, args[index]);
   });
 
@@ -345,4 +369,3 @@ function unwrapReturnValue(object: InternalObject): InternalObject {
 function newEnvironment(outer?: Environment): Environment {
   return new Environment(outer);
 }
-

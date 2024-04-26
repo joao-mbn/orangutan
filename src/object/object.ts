@@ -8,7 +8,8 @@ export enum ObjectType {
   RETURN_VALUE = 'RETURN_VALUE',
   ERROR_OBJECT = 'ERROR_OBJECT',
   FUNCTION_OBJECT = 'FUNCTION_OBJECT',
-  STRING = 'STRING'
+  STRING = 'STRING',
+  BUILTIN_OBJECT = 'BUILTIN_OBJECT'
 }
 
 export interface InternalObject {
@@ -102,3 +103,16 @@ export class FunctionObject implements InternalObject {
   }
 }
 
+export type BuiltinFunction = (...args: InternalObject[]) => InternalObject;
+
+export class BuiltinFunctionObject implements InternalObject {
+  constructor(public fn: BuiltinFunction) {}
+
+  objectType() {
+    return ObjectType.BUILTIN_OBJECT;
+  }
+
+  inspect() {
+    return 'builtin function';
+  }
+}

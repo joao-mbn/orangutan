@@ -271,5 +271,30 @@ describe('Evaluator', () => {
       assert.strictEqual(evaluated.inspect(), 'Hello World!');
     });
   });
-});
 
+  describe('evaluate builtin functions', () => {
+    const inputs = [
+      { input: 'len("")', expected: 0 },
+      { input: 'len("four")', expected: 4 },
+      { input: 'len("hello world")', expected: 11 },
+      { input: 'len(1)', expected: "argument to 'len' not supported, got INTEGER" },
+      { input: 'len("one", "two")', expected: 'wrong number of arguments. got=2, want=1' }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      if (typeof expected === 'number') {
+        testIntegerObject(evaluated, expected);
+      } else {
+        it('object is ErrorObject', () => {
+          assert.ok(evaluated instanceof ErrorObject);
+        });
+
+        it('should have the expected error message', () => {
+          assert.strictEqual(evaluated.inspect(), expected);
+        });
+      }
+    });
+  });
+});
