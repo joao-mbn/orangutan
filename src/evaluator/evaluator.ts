@@ -1,4 +1,5 @@
 import {
+  ArrayLiteral,
   AstNode,
   BlockStatement,
   BooleanLiteral,
@@ -8,6 +9,7 @@ import {
   FunctionLiteral,
   Identifier,
   IfExpression,
+  IndexExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -18,35 +20,18 @@ import {
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 import {
+  ArrayObject,
   BooleanObject,
   BuiltinFunctionObject,
   ErrorObject,
   FunctionObject,
   IntegerObject,
   InternalObject,
-  NullObject,
-  ObjectType,
   ReturnValueObject,
   StringObject
 } from '../object/object';
-
-export const TRUE_OBJECT = new BooleanObject(true);
-export const FALSE_OBJECT = new BooleanObject(false);
-export const NULL = new NullObject();
-
-export const LEN = new BuiltinFunctionObject((...args: InternalObject[]) => {
-  if (args.length !== 1) {
-    return newError(`wrong number of arguments. got=${args.length}, want=1`);
-  }
-
-  if (!(args[0] instanceof StringObject)) {
-    return newError(`argument to 'len' not supported, got ${args[0].objectType()}`);
-  }
-
-  const arg = args[0] as StringObject;
-  return new IntegerObject(arg.value.length);
-});
-export const builtIns = new Map<string, BuiltinFunctionObject>([['len', LEN]]);
+import { builtins } from './builtins';
+import { FALSE_OBJECT, NULL, TRUE_OBJECT } from './defaultObjects';
 
 export function evaluator(node: AstNode, environment: Environment): InternalObject {
   if (node instanceof Program) {
@@ -138,6 +123,29 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
     return applyFunction(fn, args);
   }
 
+  if (node instanceof ArrayLiteral) {
+    const elements = evaluateExpressions(node.elements, environment);
+    if (elements.length === 1 && isError(elements[0])) {
+      return elements[0];
+    }
+
+    return new ArrayObject(elements);
+  }
+
+  if (node instanceof IndexExpression) {
+    const left = evaluator(node.left, environment);
+    if (isError(left)) {
+      return left;
+    }
+
+    const index = evaluator(node.index, environment);
+    if (isError(index)) {
+      return index;
+    }
+
+    return evaluateIndexExpression(left, index);
+  }
+
   return NULL;
 }
 
@@ -180,7 +188,7 @@ function evaluatePrefixExpression(operator: string, right: InternalObject): Inte
     case '-':
       return evaluateMinusPrefixOperatorExpression(right);
     default:
-      return newError(`unknown operator: ${operator} ${right.objectType()}`);
+      return new ErrorObject(`unknown operator: ${operator} ${right.objectType()}`);
   }
 }
 
@@ -190,7 +198,7 @@ function evaluateBangOperatorExpression(right: InternalObject): BooleanObject {
 
 function evaluateMinusPrefixOperatorExpression(right: InternalObject): InternalObject {
   if (!(right instanceof IntegerObject)) {
-    return newError(`unknown operator: -${right.objectType()}`);
+    return new ErrorObject(`unknown operator: -${right.objectType()}`);
   }
 
   const value = (right as IntegerObject).value;
@@ -200,14 +208,14 @@ function evaluateMinusPrefixOperatorExpression(right: InternalObject): InternalO
 
 function evaluateInfixExpression(operator: string, left: InternalObject, right: InternalObject): InternalObject {
   if (left.objectType() !== right.objectType()) {
-    return newError(`type mismatch: ${left.objectType()} ${operator} ${right.objectType()}`);
+    return new ErrorObject(`type mismatch: ${left.objectType()} ${operator} ${right.objectType()}`);
   }
 
-  if (left.objectType() === ObjectType.INTEGER && right.objectType() === ObjectType.INTEGER) {
+  if (left instanceof IntegerObject && right instanceof IntegerObject) {
     return evaluateIntegerInfixExpression(operator, left, right);
   }
 
-  if (left.objectType() === ObjectType.STRING && right.objectType() === ObjectType.STRING) {
+  if (left instanceof StringObject && right instanceof StringObject) {
     return evaluateStringInfixExpression(operator, left, right);
   }
 
@@ -219,7 +227,7 @@ function evaluateInfixExpression(operator: string, left: InternalObject, right: 
     return nativeBooleanToBooleanObject(left !== right);
   }
 
-  return newError(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
+  return new ErrorObject(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
 }
 
 function evaluateIntegerInfixExpression(operator: string, left: InternalObject, right: InternalObject): InternalObject {
@@ -244,7 +252,7 @@ function evaluateIntegerInfixExpression(operator: string, left: InternalObject, 
     case '!=':
       return nativeBooleanToBooleanObject(leftValue !== rightValue);
     default:
-      return newError(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
+      return new ErrorObject(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
   }
 }
 
@@ -253,7 +261,7 @@ function evaluateStringInfixExpression(operator: string, left: InternalObject, r
   const rightValue = (right as StringObject).value;
 
   if (operator !== '+') {
-    return newError(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
+    return new ErrorObject(`unknown operator: ${left.objectType()} ${operator} ${right.objectType()}`);
   }
 
   return new StringObject(leftValue + rightValue);
@@ -281,7 +289,7 @@ function evaluateIdentifier(node: Identifier, environment: Environment): Interna
     return value;
   }
 
-  const builtin = builtIns.get(node.value);
+  const builtin = builtins.get(node.value);
   if (builtin !== undefined) {
     return builtin;
   }
@@ -305,6 +313,25 @@ function evaluateExpressions(expressions: Expression[], environment: Environment
   return results;
 }
 
+function evaluateIndexExpression(left: InternalObject, index: InternalObject): InternalObject {
+  if (left instanceof ArrayObject && index instanceof IntegerObject) {
+    return evaluateArrayIndexExpression(left as ArrayObject, index as IntegerObject);
+  }
+
+  return new ErrorObject(`index operator not supported: ${left.objectType()}`);
+}
+
+function evaluateArrayIndexExpression(array: ArrayObject, index: IntegerObject): InternalObject {
+  const i = index.value;
+  const max = array.elements.length - 1;
+
+  if (i < 0 || i > max) {
+    return NULL;
+  }
+
+  return array.elements[i];
+}
+
 function applyFunction(fn: InternalObject, args: InternalObject[]): InternalObject {
   if (fn instanceof FunctionObject) {
     const extendedEnv = extendFunctionEnvironment(fn, args);
@@ -317,7 +344,7 @@ function applyFunction(fn: InternalObject, args: InternalObject[]): InternalObje
     return fn.fn(...args);
   }
 
-  return newError(`not a function: ${fn.objectType()}`);
+  return new ErrorObject(`not a function: ${fn.objectType()}`);
 }
 
 function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
@@ -338,10 +365,6 @@ function isTruthy(object: InternalObject): boolean {
   }
 
   return true;
-}
-
-function newError(message: string) {
-  return new ErrorObject(message);
 }
 
 function isError(object: InternalObject): object is ErrorObject {
@@ -369,3 +392,4 @@ function unwrapReturnValue(object: InternalObject): InternalObject {
 function newEnvironment(outer?: Environment): Environment {
   return new Environment(outer);
 }
+

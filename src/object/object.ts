@@ -9,7 +9,8 @@ export enum ObjectType {
   ERROR_OBJECT = 'ERROR_OBJECT',
   FUNCTION_OBJECT = 'FUNCTION_OBJECT',
   STRING = 'STRING',
-  BUILTIN_OBJECT = 'BUILTIN_OBJECT'
+  BUILTIN_OBJECT = 'BUILTIN_OBJECT',
+  ARRAY_OBJECT = 'ARRAY_OBJECT'
 }
 
 export interface InternalObject {
@@ -114,5 +115,17 @@ export class BuiltinFunctionObject implements InternalObject {
 
   inspect() {
     return 'builtin function';
+  }
+}
+
+export class ArrayObject implements InternalObject {
+  constructor(public elements: InternalObject[]) {}
+
+  objectType() {
+    return ObjectType.ARRAY_OBJECT;
+  }
+
+  inspect() {
+    return `[${this.elements.map((e) => e.inspect()).join(', ')}]`;
   }
 }

@@ -94,6 +94,12 @@ export class Lexer {
       case '}':
         token = { type: TokenType.RBRACE, literal: this.char };
         break;
+      case '[':
+        token = { type: TokenType.LBRACKET, literal: this.char };
+        break;
+      case ']':
+        token = { type: TokenType.RBRACKET, literal: this.char };
+        break;
       case '"':
         token = this.readString();
         break;
@@ -165,3 +171,4 @@ export class Lexer {
     return { type: TokenType.STRING, literal };
   }
 }
+

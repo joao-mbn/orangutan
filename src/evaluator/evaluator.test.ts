@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { Environment } from '../object/environment';
 import {
+  ArrayObject,
   BooleanObject,
   ErrorObject,
   FunctionObject,
@@ -10,7 +11,8 @@ import {
   StringObject
 } from '../object/object';
 import { getProgramAndParser } from '../parser/parser.test';
-import { NULL, evaluator } from './evaluator';
+import { NULL } from './defaultObjects';
+import { evaluator } from './evaluator';
 
 describe('Evaluator', () => {
   function testEvaluator(input: string) {
@@ -36,7 +38,7 @@ describe('Evaluator', () => {
   }
 
   function testBooleanObject(object: InternalObject, expected: boolean) {
-    it('object is IntegerObject', () => {
+    it('object is BooleanObject', () => {
       assert.ok(object instanceof BooleanObject);
     });
 
@@ -278,7 +280,19 @@ describe('Evaluator', () => {
       { input: 'len("four")', expected: 4 },
       { input: 'len("hello world")', expected: 11 },
       { input: 'len(1)', expected: "argument to 'len' not supported, got INTEGER" },
-      { input: 'len("one", "two")', expected: 'wrong number of arguments. got=2, want=1' }
+      { input: 'len("one", "two")', expected: 'wrong number of arguments. got=2, want=1' },
+      { input: `len([1, 2, 3])`, expected: 3 },
+      { input: `len([])`, expected: 0 },
+      { input: `first([1, 2, 3])`, expected: 1 },
+      { input: `first([])`, expected: null },
+      { input: `first(1)`, expected: "argument to 'first' must be ARRAY, got INTEGER" },
+      { input: `last([1, 2, 3])`, expected: 3 },
+      { input: `last([])`, expected: null },
+      { input: `last(1)`, expected: "argument to 'last' must be ARRAY, got INTEGER" },
+      { input: `rest([1, 2, 3])`, expected: [2, 3] },
+      { input: `rest([])`, expected: null },
+      { input: `push([], 1)`, expected: [1] },
+      { input: `push(1, 1)`, expected: "argument to 'push' must be ARRAY, got INTEGER" }
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -286,6 +300,22 @@ describe('Evaluator', () => {
 
       if (typeof expected === 'number') {
         testIntegerObject(evaluated, expected);
+      } else if (expected === null) {
+        testNullObject(evaluated);
+      } else if (Array.isArray(expected)) {
+        it('object is ArrayObject', () => {
+          assert.ok(evaluated instanceof ArrayObject);
+        });
+
+        if (!(evaluated instanceof ArrayObject)) throw new Error();
+
+        it('should have the expected number of elements', () => {
+          assert.strictEqual(evaluated.elements.length, expected.length);
+        });
+
+        expected.forEach((element, index) => {
+          testIntegerObject(evaluated.elements[index], element);
+        });
       } else {
         it('object is ErrorObject', () => {
           assert.ok(evaluated instanceof ErrorObject);
@@ -297,4 +327,47 @@ describe('Evaluator', () => {
       }
     });
   });
+
+  describe('evaluate array literals', () => {
+    const input = '[1, 2 * 2, 3 + 3]';
+    const evaluated = testEvaluator(input) as ArrayObject;
+
+    it('object is ArrayObject', () => {
+      assert.ok(evaluated instanceof ArrayObject);
+    });
+
+    it('should have the expected number of elements', () => {
+      assert.strictEqual(evaluated.elements.length, 3);
+    });
+
+    testIntegerObject(evaluated.elements[0], 1);
+    testIntegerObject(evaluated.elements[1], 4);
+    testIntegerObject(evaluated.elements[2], 6);
+  });
+
+  describe('evaluate array index expressions', () => {
+    const inputs = [
+      { input: '[1, 2, 3][0]', expected: 1 },
+      { input: '[1, 2, 3][1]', expected: 2 },
+      { input: '[1, 2, 3][2]', expected: 3 },
+      { input: 'let i = 0; [1][i];', expected: 1 },
+      { input: '[1, 2, 3][1 + 1];', expected: 3 },
+      { input: 'let myArray = [1, 2, 3]; myArray[2];', expected: 3 },
+      { input: 'let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];', expected: 6 },
+      { input: 'let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]', expected: 2 },
+      { input: '[1, 2, 3][3]', expected: null },
+      { input: '[1, 2, 3][-1]', expected: null }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      if (expected === null) {
+        testNullObject(evaluated);
+      } else {
+        testIntegerObject(evaluated, expected);
+      }
+    });
+  });
 });
+

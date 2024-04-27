@@ -95,10 +95,12 @@ export class ExpressionStatement implements Statement {
 }
 
 export class BlockStatement implements AstNode {
-  token: Token = { type: TokenType.LBRACE, literal: getKeywordLiteral(TokenType.LBRACE) };
   statements: Statement[];
 
-  constructor(statements: Statement[]) {
+  constructor(
+    statements: Statement[],
+    public token: Token // {
+  ) {
     this.statements = statements;
   }
 
@@ -107,6 +109,27 @@ export class BlockStatement implements AstNode {
   }
 
   statementNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
+export class ArrayLiteral implements Expression {
+  elements: Expression[];
+
+  constructor(
+    elements: Expression[],
+    public token: Token // [
+  ) {
+    this.elements = elements;
+  }
+
+  asString(): string {
+    return `[${this.elements.map((element) => element.asString()).join(', ')}]`;
+  }
+
+  expressionNode(): void {}
 
   tokenLiteral(): string {
     return this.token.literal;
@@ -154,11 +177,12 @@ export class IntegerLiteral implements Expression {
 }
 
 export class BooleanLiteral implements Expression {
-  token: Token;
   value: boolean;
 
-  constructor(token: Token, value: boolean) {
-    this.token = token;
+  constructor(
+    public token: Token,
+    value: boolean
+  ) {
     this.value = value;
   }
 
@@ -192,12 +216,14 @@ export class StringLiteral implements Expression {
 }
 
 export class PrefixExpression implements Expression {
-  token: Token;
   operator: string;
   right: Expression;
 
-  constructor(token: Token, operator: string, right: Expression) {
-    this.token = token;
+  constructor(
+    public token: Token,
+    operator: string,
+    right: Expression
+  ) {
     this.operator = operator;
     this.right = right;
   }
@@ -214,13 +240,16 @@ export class PrefixExpression implements Expression {
 }
 
 export class InfixExpression implements Expression {
-  token: Token;
   operator: string;
   left: Expression;
   right: Expression;
 
-  constructor(token: Token, operator: string, left: Expression, right: Expression) {
-    this.token = token;
+  constructor(
+    public token: Token,
+    operator: string,
+    left: Expression,
+    right: Expression
+  ) {
     this.operator = operator;
     this.left = left;
     this.right = right;
@@ -286,18 +315,44 @@ export class FunctionLiteral implements Expression {
 }
 
 export class CallExpression implements Expression {
-  token: Token = { type: TokenType.LPAREN, literal: getKeywordLiteral(TokenType.LPAREN) };
   function: Expression;
   arguments: Expression[];
 
-  constructor(token: Token, func: Expression, args: Expression[]) {
-    this.token = token;
+  constructor(
+    public token: Token, // (
+    func: Expression,
+    args: Expression[]
+  ) {
     this.function = func;
     this.arguments = args;
   }
 
   asString(): string {
     return `${this.function.asString()}(${this.arguments.map((arg) => arg.asString()).join(', ')})`;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
+export class IndexExpression implements Expression {
+  left: Expression;
+  index: Expression;
+
+  constructor(
+    public token: Token, // [
+    left: Expression,
+    index: Expression
+  ) {
+    this.left = left;
+    this.index = index;
+  }
+
+  asString(): string {
+    return `(${this.left.asString()}[${this.index.asString()}])`;
   }
 
   expressionNode(): void {}

@@ -1,4 +1,5 @@
 import {
+  ArrayLiteral,
   BlockStatement,
   BooleanLiteral,
   CallExpression,
@@ -7,6 +8,7 @@ import {
   FunctionLiteral,
   Identifier,
   IfExpression,
+  IndexExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -27,7 +29,8 @@ enum Precedence {
   SUM, // +
   PRODUCT, // *
   PREFIX, // -X or !X
-  CALL // myFunction(X)
+  CALL, // myFunction(X)
+  INDEX
 }
 
 const tokenPrecedences: Map<TokenType, Precedence> = new Map([
@@ -39,7 +42,8 @@ const tokenPrecedences: Map<TokenType, Precedence> = new Map([
   [TokenType.MINUS, Precedence.SUM],
   [TokenType.SLASH, Precedence.PRODUCT],
   [TokenType.ASTERISK, Precedence.PRODUCT],
-  [TokenType.LPAREN, Precedence.CALL]
+  [TokenType.LPAREN, Precedence.CALL],
+  [TokenType.LBRACKET, Precedence.INDEX]
 ]);
 
 export class Parser {
@@ -58,7 +62,8 @@ export class Parser {
     [TokenType.LPAREN, this.parseGroupedExpression.bind(this)],
     [TokenType.IF, this.parseIfExpression.bind(this)],
     [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)],
-    [TokenType.STRING, this.parseStringLiteral.bind(this)]
+    [TokenType.STRING, this.parseStringLiteral.bind(this)],
+    [TokenType.LBRACKET, this.parseArrayLiteral.bind(this)]
   ]);
 
   infixParseFunctions: Map<TokenType, (node: Expression) => Expression | null> = new Map([
@@ -70,7 +75,8 @@ export class Parser {
     [TokenType.NOT_EQ, this.parseInfixExpression.bind(this)],
     [TokenType.LT, this.parseInfixExpression.bind(this)],
     [TokenType.GT, this.parseInfixExpression.bind(this)],
-    [TokenType.LPAREN, this.parseCallExpression.bind(this)]
+    [TokenType.LPAREN, this.parseCallExpression.bind(this)],
+    [TokenType.LBRACKET, this.parseIndexExpression.bind(this)]
   ]);
 
   constructor(lexer: Lexer) {
@@ -234,6 +240,10 @@ export class Parser {
     return new Identifier(this.currentToken.literal);
   }
 
+  parseStringLiteral(): Expression {
+    return new StringLiteral(this.currentToken.literal);
+  }
+
   parseIntegerLiteral(): Expression | null {
     const value = Number(this.currentToken.literal);
     if (isNaN(value)) {
@@ -312,6 +322,7 @@ export class Parser {
   }
 
   parseBlockStatement(): BlockStatement {
+    const token = this.currentToken;
     const statements: Statement[] = [];
 
     this.nextToken();
@@ -324,7 +335,7 @@ export class Parser {
       this.nextToken();
     }
 
-    return new BlockStatement(statements);
+    return new BlockStatement(statements, token);
   }
 
   parseFunctionLiteral(): Expression | null {
@@ -390,19 +401,29 @@ export class Parser {
   }
 
   parseCallExpression(functionExpression: Expression): Expression | null {
-    const args = this.parseCallArguments();
+    const args = this.parseExpressionList(TokenType.RPAREN);
     if (args == null) {
       return null;
     }
     return new CallExpression(this.currentToken, functionExpression, args);
   }
 
-  parseCallArguments(): Expression[] | null {
-    const args: Expression[] = [];
+  parseArrayLiteral(): Expression | null {
+    const token = this.currentToken;
+    const elements = this.parseExpressionList(TokenType.RBRACKET);
+    if (elements == null) {
+      return null;
+    }
 
-    if (this.peekTokenIs(TokenType.RPAREN)) {
+    return new ArrayLiteral(elements, token);
+  }
+
+  parseExpressionList(end: TokenType): Expression[] | null {
+    const list: Expression[] = [];
+
+    if (this.peekTokenIs(end)) {
       this.nextToken();
-      return args;
+      return list;
     }
 
     this.nextToken();
@@ -411,7 +432,7 @@ export class Parser {
     if (expression == null) {
       return null;
     }
-    args.push(expression);
+    list.push(expression);
 
     while (this.peekTokenIs(TokenType.COMMA)) {
       this.nextToken();
@@ -421,18 +442,31 @@ export class Parser {
       if (expression == null) {
         return null;
       }
-      args.push(expression);
+      list.push(expression);
     }
 
-    if (!this.expectPeek(TokenType.RPAREN)) {
+    if (!this.expectPeek(end)) {
       return null;
     }
 
-    return args;
+    return list;
   }
 
-  parseStringLiteral(): Expression | null {
-    return new StringLiteral(this.currentToken.literal);
+  parseIndexExpression(left: Expression): Expression | null {
+    const token = this.currentToken;
+
+    this.nextToken();
+
+    const index = this.parseExpression(Precedence.LOWEST);
+    if (index == null) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.RBRACKET)) {
+      return null;
+    }
+
+    return new IndexExpression(token, left, index);
   }
 }
 

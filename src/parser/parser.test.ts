@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  ArrayLiteral,
   BlockStatement,
   BooleanLiteral,
   CallExpression,
@@ -9,6 +10,7 @@ import {
   FunctionLiteral,
   Identifier,
   IfExpression,
+  IndexExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -313,7 +315,9 @@ describe('Parser', () => {
         input: 'add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));',
         expected: 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))'
       },
-      { input: 'add(a + b + c * d / f + g);', expected: 'add((((a + b) + ((c * d) / f)) + g))' }
+      { input: 'add(a + b + c * d / f + g);', expected: 'add((((a + b) + ((c * d) / f)) + g))' },
+      { input: 'a * [1, 2, 3, 4][b * c] * d;', expected: '((a * ([1, 2, 3, 4][(b * c)])) * d)' },
+      { input: 'add(a * b[2], b[1], 2 * [1, 2][1]);', expected: 'add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))' }
     ];
 
     tests.forEach(({ input, expected }) => {
@@ -551,6 +555,55 @@ describe('Parser', () => {
     it('expression value is correct', () => {
       assert.strictEqual(expression.tokenLiteral(), 'hello world');
     });
+  });
+
+  describe('array literal parsing', () => {
+    const input = '[1, 2 * 2, 3 + 3]';
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const expression = (program.statements[0] as ExpressionStatement).expression as ArrayLiteral;
+
+    it('expression is instance of ArrayLiteral', () => {
+      assert.ok(expression instanceof ArrayLiteral);
+    });
+
+    it('expression has 3 elements', () => {
+      assert.strictEqual(expression.elements.length, 3);
+    });
+
+    testLiteralExpression(expression.elements[0], 1);
+    testInfixExpression(expression.elements[1] as InfixExpression, 2, '*', 2);
+    testInfixExpression(expression.elements[2] as InfixExpression, 3, '+', 3);
+  });
+
+  describe('parsing index expressions', () => {
+    const input = 'myArray[1 + 1]';
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const expression = (program.statements[0] as ExpressionStatement).expression as IndexExpression;
+
+    it('expression is instance of IndexExpression', () => {
+      assert.ok(expression instanceof IndexExpression);
+    });
+
+    testIdentifier(expression.left as Identifier, 'myArray');
+    testInfixExpression(expression.index as InfixExpression, 1, '+', 1);
   });
 });
 
