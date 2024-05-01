@@ -8,6 +8,7 @@ import {
   Expression,
   ExpressionStatement,
   FunctionLiteral,
+  HashLiteral,
   Identifier,
   IfExpression,
   IndexExpression,
@@ -604,6 +605,167 @@ describe('Parser', () => {
 
     testIdentifier(expression.left as Identifier, 'myArray');
     testInfixExpression(expression.index as InfixExpression, 1, '+', 1);
+  });
+
+  describe('parsing hash literals', () => {
+    describe('parsing a hash literal with keys', () => {
+      const input = '{ "one": 1 }';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(program.statements[0] instanceof ExpressionStatement);
+      });
+
+      const expression = (program.statements[0] as ExpressionStatement).expression as HashLiteral;
+
+      it('expression is instance of HashLiteral', () => {
+        assert.ok(expression instanceof HashLiteral);
+      });
+
+      const expected = new Map([['one', 1]]);
+
+      expression.pairs.forEach((value, key) => {
+        it('expression is instance of StringLiteral', () => {
+          assert.ok(key instanceof StringLiteral);
+        });
+
+        const expectedValue = expected.get(key.tokenLiteral())!;
+        testIntegerLiteral(value as IntegerLiteral, expectedValue);
+      });
+    });
+
+    describe('parse empty hash literal', () => {
+      const input = '{}';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(program.statements[0] instanceof ExpressionStatement);
+      });
+
+      const expression = (program.statements[0] as ExpressionStatement).expression as HashLiteral;
+
+      it('expression is instance of HashLiteral', () => {
+        assert.ok(expression instanceof HashLiteral);
+      });
+
+      it('expression has no pairs', () => {
+        assert.strictEqual(expression.pairs.size, 0);
+      });
+    });
+
+    describe('parse boolean keys', () => {
+      const input = '{ true: 1, false: 2 }';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(program.statements[0] instanceof ExpressionStatement);
+      });
+
+      const expression = (program.statements[0] as ExpressionStatement).expression as HashLiteral;
+
+      it('expression is instance of HashLiteral', () => {
+        assert.ok(expression instanceof HashLiteral);
+      });
+
+      const expected = new Map([
+        ['true', 1],
+        ['false', 2]
+      ]);
+
+      expression.pairs.forEach((value, key) => {
+        it('expression is instance of BooleanLiteral', () => {
+          assert.ok(key instanceof BooleanLiteral);
+        });
+
+        const expectedValue = expected.get(key.tokenLiteral())!;
+        testIntegerLiteral(value as IntegerLiteral, expectedValue);
+      });
+    });
+
+    describe('parse integer keys', () => {
+      const input = '{ 1: 1, 2: 2 }';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(program.statements[0] instanceof ExpressionStatement);
+      });
+
+      const expression = (program.statements[0] as ExpressionStatement).expression as HashLiteral;
+
+      it('expression is instance of HashLiteral', () => {
+        assert.ok(expression instanceof HashLiteral);
+      });
+
+      const expected = new Map([
+        ['1', 1],
+        ['2', 2]
+      ]);
+
+      expression.pairs.forEach((value, key) => {
+        it('expression is instance of IntegerLiteral', () => {
+          assert.ok(key instanceof IntegerLiteral);
+        });
+
+        const expectedValue = expected.get(key.tokenLiteral())!;
+        testIntegerLiteral(value as IntegerLiteral, expectedValue);
+      });
+    });
+
+    describe('parse hash literals with expressions', () => {
+      const input = '{ "one": 0 + 1, "two": 10 - 8, "three": 15 / 5 }';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      it('first statement is instance of ExpressionStatement', () => {
+        assert.ok(program.statements[0] instanceof ExpressionStatement);
+      });
+
+      const expression = (program.statements[0] as ExpressionStatement).expression as HashLiteral;
+
+      it('expression is instance of HashLiteral', () => {
+        assert.ok(expression instanceof HashLiteral);
+      });
+
+      const expected = new Map([
+        ['one', (expression: InfixExpression) => testInfixExpression(expression, 0, '+', 1)],
+        ['two', (expression: InfixExpression) => testInfixExpression(expression, 10, '-', 8)],
+        ['three', (expression: InfixExpression) => testInfixExpression(expression, 15, '/', 5)]
+      ]);
+
+      expression.pairs.forEach((value, key) => {
+        const testFunction = expected.get(key.tokenLiteral())!;
+        testFunction(value as InfixExpression);
+      });
+    });
   });
 });
 

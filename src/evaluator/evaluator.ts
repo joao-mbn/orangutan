@@ -7,6 +7,7 @@ import {
   Expression,
   ExpressionStatement,
   FunctionLiteral,
+  HashLiteral,
   Identifier,
   IfExpression,
   IndexExpression,
@@ -25,6 +26,8 @@ import {
   BuiltinFunctionObject,
   ErrorObject,
   FunctionObject,
+  HashObject,
+  Hashable,
   IntegerObject,
   InternalObject,
   ReturnValueObject,
@@ -144,6 +147,10 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
     }
 
     return evaluateIndexExpression(left, index);
+  }
+
+  if (node instanceof HashLiteral) {
+    return evaluateHashLiteral(node, environment);
   }
 
   return NULL;
@@ -318,6 +325,10 @@ function evaluateIndexExpression(left: InternalObject, index: InternalObject): I
     return evaluateArrayIndexExpression(left as ArrayObject, index as IntegerObject);
   }
 
+  if (left instanceof HashObject) {
+    return evaluateHashIndexExpression(left, index);
+  }
+
   return new ErrorObject(`index operator not supported: ${left.objectType()}`);
 }
 
@@ -330,6 +341,41 @@ function evaluateArrayIndexExpression(array: ArrayObject, index: IntegerObject):
   }
 
   return array.elements[i];
+}
+
+function evaluateHashIndexExpression(hash: HashObject, index: InternalObject): InternalObject {
+  if (!(index instanceof Hashable)) {
+    return new ErrorObject(`unusable as hash key: ${index.objectType()}`);
+  }
+
+  const pair = hash.pairs.get(index.hashKey());
+
+  if (!pair) {
+    return NULL;
+  }
+
+  return pair.value;
+}
+
+function evaluateHashLiteral(node: HashLiteral, environment: Environment) {
+  const pairs = new Map<number, { key: InternalObject; value: InternalObject }>();
+  node.pairs.forEach((value, key) => {
+    const evaluatedKey = evaluator(key, environment);
+
+    if (!(evaluatedKey instanceof Hashable)) {
+      return new ErrorObject(`unusable as hash key: ${evaluatedKey.objectType()}`);
+    }
+
+    const evaluatedValue = evaluator(value, environment);
+    if (isError(evaluatedValue)) {
+      return evaluatedValue;
+    }
+
+    const hash = evaluatedKey.hashKey();
+    pairs.set(hash, { key: evaluatedKey, value: evaluatedValue });
+  });
+
+  return new HashObject(pairs);
 }
 
 function applyFunction(fn: InternalObject, args: InternalObject[]): InternalObject {

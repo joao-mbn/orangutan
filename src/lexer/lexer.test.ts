@@ -31,6 +31,8 @@ if (5 < 10) {
 ""
 
 [1, 2];
+
+{ "foo": "bar" }
 `;
 
   const tests: Token[] = [
@@ -116,6 +118,11 @@ if (5 < 10) {
     { type: TokenType.INT, literal: '2' },
     { type: TokenType.RBRACKET, literal: ']' },
     { type: TokenType.SEMICOLON, literal: ';' },
+    { type: TokenType.LBRACE, literal: '{' },
+    { type: TokenType.STRING, literal: 'foo' },
+    { type: TokenType.COLON, literal: ':' },
+    { type: TokenType.STRING, literal: 'bar' },
+    { type: TokenType.RBRACE, literal: '}' },
     { type: TokenType.EOF, literal: '' }
   ];
 

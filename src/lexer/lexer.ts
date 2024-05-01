@@ -103,6 +103,9 @@ export class Lexer {
       case '"':
         token = this.readString();
         break;
+      case ':':
+        token = { type: TokenType.COLON, literal: this.char };
+        break;
       case '':
         token = { type: TokenType.EOF, literal: '' };
         break;

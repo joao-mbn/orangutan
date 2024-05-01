@@ -1,5 +1,6 @@
 import { BlockStatement, Identifier } from '../ast/ast';
 import { Environment } from './environment';
+import { hashString } from './hashString';
 
 export enum ObjectType {
   INTEGER = 'INTEGER',
@@ -18,8 +19,15 @@ export interface InternalObject {
   inspect(): string;
 }
 
-export class IntegerObject implements InternalObject {
-  constructor(public value: number) {}
+// Using an abstract class instead of an interface allows to use instanceof.
+export abstract class Hashable {
+  abstract hashKey(): number; /* Javascript doesn't have something like comparable struct as Go does, thus the ObjectType must be on the hashKey value itself. */
+}
+
+export class IntegerObject extends Hashable implements InternalObject {
+  constructor(public value: number) {
+    super();
+  }
 
   objectType() {
     return ObjectType.INTEGER;
@@ -28,10 +36,16 @@ export class IntegerObject implements InternalObject {
   inspect() {
     return this.value.toString();
   }
+
+  hashKey() {
+    return hashString(this.objectType()) + this.value;
+  }
 }
 
-export class BooleanObject implements InternalObject {
-  constructor(public value: boolean) {}
+export class BooleanObject extends Hashable implements InternalObject {
+  constructor(public value: boolean) {
+    super();
+  }
 
   objectType() {
     return ObjectType.BOOLEAN;
@@ -39,6 +53,10 @@ export class BooleanObject implements InternalObject {
 
   inspect() {
     return this.value.toString();
+  }
+
+  hashKey() {
+    return hashString(this.objectType()) + (this.value ? 1 : 0);
   }
 }
 
@@ -52,8 +70,10 @@ export class NullObject implements InternalObject {
   }
 }
 
-export class StringObject implements InternalObject {
-  constructor(public value: string) {}
+export class StringObject extends Hashable implements InternalObject {
+  constructor(public value: string) {
+    super();
+  }
 
   objectType() {
     return ObjectType.STRING;
@@ -61,6 +81,15 @@ export class StringObject implements InternalObject {
 
   inspect() {
     return this.value;
+  }
+
+  hashKey() {
+    let hash = 0;
+    for (let i = 0; i < this.value.length; i++) {
+      hash = (hash << 5) - hash + this.value.charCodeAt(i);
+      hash |= 0;
+    }
+    return hashString(this.objectType()) + hash;
   }
 }
 
@@ -129,3 +158,17 @@ export class ArrayObject implements InternalObject {
     return `[${this.elements.map((e) => e.inspect()).join(', ')}]`;
   }
 }
+
+export class HashObject implements InternalObject {
+  constructor(public pairs: Map<number, { key: InternalObject; value: InternalObject }>) {}
+
+  objectType() {
+    return ObjectType.ARRAY_OBJECT;
+  }
+
+  inspect() {
+    const pairs = Array.from(this.pairs.values()).map(({ key, value }) => `${key.inspect()}: ${value.inspect()}`);
+    return `{${pairs.join(', ')}}`;
+  }
+}
+

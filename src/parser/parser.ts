@@ -6,6 +6,7 @@ import {
   Expression,
   ExpressionStatement,
   FunctionLiteral,
+  HashLiteral,
   Identifier,
   IfExpression,
   IndexExpression,
@@ -63,7 +64,8 @@ export class Parser {
     [TokenType.IF, this.parseIfExpression.bind(this)],
     [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)],
     [TokenType.STRING, this.parseStringLiteral.bind(this)],
-    [TokenType.LBRACKET, this.parseArrayLiteral.bind(this)]
+    [TokenType.LBRACKET, this.parseArrayLiteral.bind(this)],
+    [TokenType.LBRACE, this.parseHashLiteral.bind(this)]
   ]);
 
   infixParseFunctions: Map<TokenType, (node: Expression) => Expression | null> = new Map([
@@ -467,6 +469,64 @@ export class Parser {
     }
 
     return new IndexExpression(token, left, index);
+  }
+
+  parseHashLiteral(): Expression | null {
+    const token = this.currentToken;
+
+    if (this.peekTokenIs(TokenType.RBRACE)) {
+      this.nextToken();
+      return new HashLiteral(token, new Map());
+    }
+
+    const pairs = new Map<Expression, Expression>();
+
+    this.nextToken();
+
+    const pair = this.parseHashLiteralPair();
+    if (pair == null) {
+      return null;
+    }
+
+    pairs.set(pair.key, pair.value);
+
+    while (this.peekTokenIs(TokenType.COMMA)) {
+      this.nextToken();
+      this.nextToken();
+
+      const pair = this.parseHashLiteralPair();
+      if (pair == null) {
+        return null;
+      }
+
+      pairs.set(pair.key, pair.value);
+    }
+
+    if (!this.expectPeek(TokenType.RBRACE)) {
+      return null;
+    }
+
+    return new HashLiteral(token, pairs);
+  }
+
+  parseHashLiteralPair() {
+    const key = this.parseExpression(Precedence.LOWEST);
+    if (key == null) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.COLON)) {
+      return null;
+    }
+
+    this.nextToken();
+
+    const value = this.parseExpression(Precedence.LOWEST);
+    if (value == null) {
+      return null;
+    }
+
+    return { key, value };
   }
 }
 

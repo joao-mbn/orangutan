@@ -102,11 +102,17 @@ const PUSH = new BuiltinFunctionObject((...args: InternalObject[]) => {
   return new ArrayObject(newElements);
 });
 
+const PUTS = new BuiltinFunctionObject((...args: InternalObject[]) => {
+  args.forEach((arg) => console.log(arg.inspect()));
+  return NULL;
+});
+
 export const builtins = new Map<string, BuiltinFunctionObject>([
   ['len', LEN],
   ['first', FIRST],
   ['last', LAST],
   ['rest', REST],
-  ['push', PUSH]
+  ['push', PUSH],
+  ['puts', PUTS]
 ]);
 

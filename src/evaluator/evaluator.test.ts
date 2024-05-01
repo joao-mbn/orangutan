@@ -6,12 +6,13 @@ import {
   BooleanObject,
   ErrorObject,
   FunctionObject,
+  HashObject,
   IntegerObject,
   InternalObject,
   StringObject
 } from '../object/object';
 import { getProgramAndParser } from '../parser/parser.test';
-import { NULL } from './defaultObjects';
+import { FALSE_OBJECT, NULL, TRUE_OBJECT } from './defaultObjects';
 import { evaluator } from './evaluator';
 
 describe('Evaluator', () => {
@@ -292,7 +293,8 @@ describe('Evaluator', () => {
       { input: `rest([1, 2, 3])`, expected: [2, 3] },
       { input: `rest([])`, expected: null },
       { input: `push([], 1)`, expected: [1] },
-      { input: `push(1, 1)`, expected: "argument to 'push' must be ARRAY, got INTEGER" }
+      { input: `push(1, 1)`, expected: "argument to 'push' must be ARRAY, got INTEGER" },
+      { input: `puts(1)`, expected: null }
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -367,6 +369,90 @@ describe('Evaluator', () => {
       } else {
         testIntegerObject(evaluated, expected);
       }
+    });
+  });
+
+  describe('evaluate hash index expressions', () => {
+    const inputs = [
+      { input: '{}["foo"]', expected: null },
+      { input: '{ "foo": 5 }["foo"]', expected: 5 },
+      { input: '{ "foo": 5 }["bar"]', expected: null },
+      { input: 'let key = "foo"; { "foo": 5 }[key]', expected: 5 },
+      { input: '{ 5: 5 }[5]', expected: 5 },
+      { input: '{ true: 5 }[true]', expected: 5 },
+      { input: '{ false: 5 }[false]', expected: 5 },
+      { input: '{"name": "Monkey"}[fn(x) { x }];', expected: 'unusable as hash key: FUNCTION_OBJECT' }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      if (expected === null) {
+        testNullObject(evaluated);
+      } else if (typeof expected === 'number') {
+        testIntegerObject(evaluated, expected);
+      } else {
+        it('object is ErrorObject', () => {
+          assert.ok(evaluated instanceof ErrorObject);
+        });
+
+        it('should have the expected error message', () => {
+          assert.strictEqual(evaluated.inspect(), expected);
+        });
+      }
+    });
+  });
+
+  describe('evaluate hash keys', () => {
+    const hello1 = new StringObject('Hello World');
+    const hello2 = new StringObject('Hello World');
+    const diff1 = new StringObject('My name is johnny');
+    const diff2 = new StringObject('My name is johnny');
+
+    assert.strictEqual(hello1.hashKey(), hello2.hashKey());
+    assert.strictEqual(hello1.hashKey(), hello2.hashKey());
+    assert.strictEqual(diff1.hashKey(), diff2.hashKey());
+    assert.notStrictEqual(hello1.hashKey(), diff1.hashKey());
+  });
+
+  describe('evaluate hash literals', () => {
+    const input = `let two = "two";
+    {
+      "one": 10 - 9,
+      two: 1 + 1,
+      "thr" + "ee": 6 / 2,
+      4: 4,
+      true: 5,
+      false: 6
+    }`;
+
+    const evaluated = testEvaluator(input) as HashObject;
+
+    it('object is HashObject', () => {
+      assert.ok(evaluated instanceof HashObject);
+    });
+
+    const expected = new Map([
+      [new StringObject('one').hashKey(), 1],
+      [new StringObject('two').hashKey(), 2],
+      [new StringObject('three').hashKey(), 3],
+      [new IntegerObject(4).hashKey(), 4],
+      [TRUE_OBJECT.hashKey(), 5],
+      [FALSE_OBJECT.hashKey(), 6]
+    ]);
+
+    it('should have the expected number of pairs', () => {
+      assert.strictEqual(evaluated.pairs.size, expected.size);
+    });
+
+    expected.forEach((value, key) => {
+      const pair = evaluated.pairs.get(key)!;
+
+      it('should have the expected key', () => {
+        assert.ok(pair);
+      });
+
+      testIntegerObject(pair.value, value);
     });
   });
 });
