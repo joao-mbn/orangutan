@@ -15,6 +15,7 @@ import {
   LetStatement,
   PrefixExpression,
   Program,
+  ReassignStatement,
   ReturnStatement,
   Statement,
   StringLiteral
@@ -121,7 +122,7 @@ export class Parser {
       case TokenType.RETURN:
         return this.parseReturnStatement();
       default:
-        return this.parseExpressionStatement();
+        return this.parseExpressionOrReassignStatement();
     }
   }
 
@@ -169,13 +170,32 @@ export class Parser {
     return new ReturnStatement(returnValue);
   }
 
-  parseExpressionStatement(): ExpressionStatement | null {
+  parseExpressionOrReassignStatement(): ExpressionStatement | ReassignStatement | null {
     const expression = this.parseExpression(Precedence.LOWEST);
     if (expression == null) {
       return null;
     }
 
-    const statement = new ExpressionStatement(this.currentToken, expression);
+    let statement: ExpressionStatement | ReassignStatement | null = null;
+
+    if (this.peekTokenIs(TokenType.ASSIGN)) {
+      if (!(expression instanceof Identifier)) {
+        this.errors.push(`Expected identifier on left side of assignment, got ${expression.asString()} instead`);
+        return null;
+      }
+
+      this.nextToken();
+      this.nextToken();
+
+      const value = this.parseExpression(Precedence.LOWEST);
+      if (value == null) {
+        return null;
+      }
+
+      statement = new ReassignStatement(expression, value);
+    } else {
+      statement = new ExpressionStatement(this.currentToken, expression);
+    }
 
     if (this.peekTokenIs(TokenType.SEMICOLON)) {
       this.nextToken();

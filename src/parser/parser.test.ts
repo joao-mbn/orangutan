@@ -16,6 +16,7 @@ import {
   IntegerLiteral,
   LetStatement,
   PrefixExpression,
+  ReassignStatement,
   ReturnStatement,
   StringLiteral
 } from '../ast/ast';
@@ -133,6 +134,51 @@ describe('Parser', () => {
 
       testIdentifier(letStatement.name, expectedIdentifier);
       testLiteralExpression(letStatement.value, expectedValue);
+    });
+  });
+
+  describe('parse reassign statements', () => {
+    describe('valid reassign statements', () => {
+      const inputs = [
+        { input: 'x = 5;', expectedIdentifier: 'x', expectedValue: 5 },
+        { input: 'foobar = y;', expectedIdentifier: 'foobar', expectedValue: 'y' },
+        { input: 'myFunction = fn(x) { x + 5 };', expectedIdentifier: 'myFunction', expectedValue: 'fn(x) { (x + 5) }' }
+      ];
+
+      inputs.forEach(({ input, expectedIdentifier, expectedValue }) => {
+        const { program, parser } = getProgramAndParser(input);
+
+        it('has no errors', () => hasNoErrors(parser));
+
+        it('has 1 statement', () => {
+          assert.strictEqual(program.statements.length, 1);
+        });
+
+        const reassignStatement = program.statements[0] as ReassignStatement;
+        it('first statement is instance of ReassignStatement', () => {
+          assert.ok(reassignStatement instanceof ReassignStatement);
+        });
+
+        testIdentifier(reassignStatement.name, expectedIdentifier);
+
+        it('value has expected value', () => {
+          assert.strictEqual(reassignStatement.value.asString(), expectedValue.toString());
+        });
+      });
+    });
+
+    describe('invalid reassign statements', () => {
+      const input = '5 = 5;';
+
+      const { parser } = getProgramAndParser(input);
+
+      it('has errors', () => {
+        assert.ok(parser.errors.length > 0);
+      });
+
+      it('has expected error message', () => {
+        assert.strictEqual(parser.errors[0], `Expected identifier on left side of assignment, got 5 instead`);
+      });
     });
   });
 

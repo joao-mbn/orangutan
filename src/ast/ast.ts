@@ -55,6 +55,26 @@ export class LetStatement implements Statement {
   }
 }
 
+export class ReassignStatement implements Statement {
+  name: Identifier;
+  value: Expression;
+
+  constructor(name: Identifier, value: Expression) {
+    this.name = name;
+    this.value = value;
+  }
+
+  asString(): string {
+    return `${this.name.asString()} = ${this.value.asString()};`;
+  }
+
+  statementNode(): void {}
+
+  tokenLiteral(): string {
+    return '';
+  }
+}
+
 export class ReturnStatement implements Statement {
   token: Token = { type: TokenType.RETURN, literal: getKeywordLiteral(TokenType.RETURN) };
   returnValue: Expression;

@@ -455,5 +455,32 @@ describe('Evaluator', () => {
       testIntegerObject(pair.value, value);
     });
   });
+
+  describe('evaluate reassign statements', () => {
+    const inputs = [
+      { input: 'let a = 5; a = 10; a;', expected: 10 },
+      { input: 'let a = 5; a = 10; let b = a; b;', expected: 10 },
+      { input: 'let a = 5; let b = a; a = 10; b;', expected: 5 },
+      { input: 'let a = 5; let b = fn() { a = 10; return a; }; b();', expected: 10 },
+      { input: 'a = 10', expected: 'variable a reassigned before being declared' },
+      { input: 'let a = 10; a = "string"', expected: 'Reassignment mismatch: tried to assign STRING to INTEGER' }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      if (typeof expected === 'number') {
+        testIntegerObject(evaluated, expected);
+      } else {
+        it('object is ErrorObject', () => {
+          assert.ok(evaluated instanceof ErrorObject);
+        });
+
+        it('should have the expected error message', () => {
+          assert.strictEqual(evaluated.inspect(), expected);
+        });
+      }
+    });
+  });
 });
 

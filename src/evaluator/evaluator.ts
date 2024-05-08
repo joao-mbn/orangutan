@@ -16,6 +16,7 @@ import {
   LetStatement,
   PrefixExpression,
   Program,
+  ReassignStatement,
   ReturnStatement,
   StringLiteral
 } from '../ast/ast';
@@ -101,7 +102,27 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
     if (isError(value)) {
       return value;
     }
-    environment.set(node.name.value, value);
+    environment.setOnCurrent(node.name.value, value);
+  }
+
+  if (node instanceof ReassignStatement) {
+    const newValue = evaluator(node.value, environment);
+    if (isError(newValue)) {
+      return newValue;
+    }
+
+    const currentValue = environment.get(node.name.value);
+    if (!currentValue) {
+      return new ErrorObject(`variable ${node.name.value} reassigned before being declared`);
+    }
+
+    if (currentValue.objectType() !== newValue.objectType()) {
+      return new ErrorObject(
+        `Reassignment mismatch: tried to assign ${newValue.objectType()} to ${currentValue.objectType()}`
+      );
+    }
+
+    environment.setOnClosest(node.name.value, newValue);
   }
 
   if (node instanceof Identifier) {
@@ -421,7 +442,7 @@ function extendFunctionEnvironment(fn: FunctionObject, args: InternalObject[]): 
   const environment = newEnvironment(fn.environment);
 
   fn.parameters.forEach((parameter, index) => {
-    environment.set(parameter.value, args[index]);
+    environment.setOnCurrent(parameter.value, args[index]);
   });
 
   return environment;
