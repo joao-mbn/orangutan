@@ -33,6 +33,11 @@ if (5 < 10) {
 [1, 2];
 
 { "foo": "bar" }
+
+|| &&
+
+|% &%
+
 `;
 
   const tests: Token[] = [
@@ -123,6 +128,10 @@ if (5 < 10) {
     { type: TokenType.COLON, literal: ':' },
     { type: TokenType.STRING, literal: 'bar' },
     { type: TokenType.RBRACE, literal: '}' },
+    { type: TokenType.OR, literal: '||' },
+    { type: TokenType.AND, literal: '&&' },
+    { type: TokenType.ILLEGAL, literal: '|%' },
+    { type: TokenType.ILLEGAL, literal: '&%' },
     { type: TokenType.EOF, literal: '' }
   ];
 

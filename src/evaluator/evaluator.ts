@@ -235,6 +235,14 @@ function evaluateMinusPrefixOperatorExpression(right: InternalObject): InternalO
 }
 
 function evaluateInfixExpression(operator: string, left: InternalObject, right: InternalObject): InternalObject {
+  if (operator === '&&') {
+    return nativeBooleanToBooleanObject(isTruthy(left) && isTruthy(right));
+  }
+
+  if (operator === '||') {
+    return nativeBooleanToBooleanObject(isTruthy(left) || isTruthy(right));
+  }
+
   if (left.objectType() !== right.objectType()) {
     return new ErrorObject(`type mismatch: ${left.objectType()} ${operator} ${right.objectType()}`);
   }
@@ -419,15 +427,7 @@ function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
 }
 
 function isTruthy(object: InternalObject): boolean {
-  if (object === NULL) {
-    return false;
-  }
-
-  if (object === TRUE_OBJECT) {
-    return true;
-  }
-
-  if (object === FALSE_OBJECT) {
+  if (object === NULL || object === FALSE_OBJECT) {
     return false;
   }
 

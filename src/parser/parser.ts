@@ -26,6 +26,8 @@ import { Token, TokenType } from '../token/token';
 enum Precedence {
   _,
   LOWEST,
+  OR, // ||
+  AND, // &&
   EQUALS, // ==
   LESSGREATER, // > or <
   SUM, // +
@@ -36,6 +38,8 @@ enum Precedence {
 }
 
 const tokenPrecedences: Map<TokenType, Precedence> = new Map([
+  [TokenType.OR, Precedence.OR],
+  [TokenType.AND, Precedence.AND],
   [TokenType.EQ, Precedence.EQUALS],
   [TokenType.NOT_EQ, Precedence.EQUALS],
   [TokenType.LT, Precedence.LESSGREATER],
@@ -74,6 +78,8 @@ export class Parser {
     [TokenType.MINUS, this.parseInfixExpression.bind(this)],
     [TokenType.SLASH, this.parseInfixExpression.bind(this)],
     [TokenType.ASTERISK, this.parseInfixExpression.bind(this)],
+    [TokenType.OR, this.parseInfixExpression.bind(this)],
+    [TokenType.AND, this.parseInfixExpression.bind(this)],
     [TokenType.EQ, this.parseInfixExpression.bind(this)],
     [TokenType.NOT_EQ, this.parseInfixExpression.bind(this)],
     [TokenType.LT, this.parseInfixExpression.bind(this)],

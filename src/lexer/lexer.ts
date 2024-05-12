@@ -64,6 +64,24 @@ export class Lexer {
           token = { type: TokenType.BANG, literal: this.char };
         }
         break;
+      case '|':
+        const or = this.char;
+        this.readChar();
+        if (this.char === '|') {
+          token = { type: TokenType.OR, literal: or + this.char };
+        } else {
+          token = { type: TokenType.ILLEGAL, literal: or + this.char };
+        }
+        break;
+      case '&':
+        const and = this.char;
+        this.readChar();
+        if (this.char === '&') {
+          token = { type: TokenType.AND, literal: and + this.char };
+        } else {
+          token = { type: TokenType.ILLEGAL, literal: and + this.char };
+        }
+        break;
       case '*':
         token = { type: TokenType.ASTERISK, literal: this.char };
         break;

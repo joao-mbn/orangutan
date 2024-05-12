@@ -309,7 +309,9 @@ describe('Parser', () => {
       { input: '5 != 5;', leftValue: 5, operator: '!=', rightValue: 5 },
       { input: 'true == true;', leftValue: true, operator: '==', rightValue: true },
       { input: 'true != false;', leftValue: true, operator: '!=', rightValue: false },
-      { input: 'false == false;', leftValue: false, operator: '==', rightValue: false }
+      { input: 'false == false;', leftValue: false, operator: '==', rightValue: false },
+      { input: 'true && true;', leftValue: true, operator: '&&', rightValue: true },
+      { input: 'true || false;', leftValue: true, operator: '||', rightValue: false }
     ];
 
     infixTests.forEach(({ input, leftValue, operator, rightValue }) => {
@@ -364,7 +366,11 @@ describe('Parser', () => {
       },
       { input: 'add(a + b + c * d / f + g);', expected: 'add((((a + b) + ((c * d) / f)) + g))' },
       { input: 'a * [1, 2, 3, 4][b * c] * d;', expected: '((a * ([1, 2, 3, 4][(b * c)])) * d)' },
-      { input: 'add(a * b[2], b[1], 2 * [1, 2][1]);', expected: 'add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))' }
+      { input: 'add(a * b[2], b[1], 2 * [1, 2][1]);', expected: 'add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))' },
+      { input: 'true || !false && true;', expected: '(true || ((!false) && true))' },
+      { input: '(true || false) && true;', expected: '((true || false) && true)' },
+      { input: '5 == add(2, 3) && true;', expected: '((5 == add(2, 3)) && true)' },
+      { input: '5 && "hello";', expected: '(5 && hello)' }
     ];
 
     tests.forEach(({ input, expected }) => {
