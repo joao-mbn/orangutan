@@ -494,5 +494,22 @@ describe('Evaluator', () => {
       }
     });
   });
+
+  describe('evaluate while statements', () => {
+    const inputs = [
+      { input: 'let a = 0; while (a < 10) { a = a + 1; } a;', expected: 10 },
+      { input: 'let a = 0; while (a < 10) { a = a + 1; if (a == 5) { return a; } }', expected: 5 },
+      {
+        input: 'let a = 0; while (a < 10) { a = a + 1; if (a == 5) { if (true) { return 2; } return a; } }',
+        expected: 2
+      }
+    ];
+
+    inputs.forEach(({ input, expected }) => {
+      const evaluated = testEvaluator(input);
+
+      testIntegerObject(evaluated, expected);
+    });
+  });
 });
 

@@ -18,7 +18,8 @@ import {
   PrefixExpression,
   ReassignStatement,
   ReturnStatement,
-  StringLiteral
+  StringLiteral,
+  WhileExpression
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
@@ -111,6 +112,22 @@ describe('Parser', () => {
     testLiteralExpression(expression.right, rightValue);
   }
 
+  function testReassignExpression(
+    reassignStatement: ReassignStatement,
+    expectedIdentifier: string,
+    expectedValue: number | string | boolean
+  ) {
+    it('first statement is instance of ReassignStatement', () => {
+      assert.ok(reassignStatement instanceof ReassignStatement);
+    });
+
+    testIdentifier(reassignStatement.name, expectedIdentifier);
+
+    it('value has expected value', () => {
+      assert.strictEqual(reassignStatement.value.asString(), expectedValue.toString());
+    });
+  }
+
   describe('parse let statements', () => {
     const inputs = [
       { input: 'let x = 5;', expectedIdentifier: 'x', expectedValue: 5 },
@@ -155,15 +172,7 @@ describe('Parser', () => {
         });
 
         const reassignStatement = program.statements[0] as ReassignStatement;
-        it('first statement is instance of ReassignStatement', () => {
-          assert.ok(reassignStatement instanceof ReassignStatement);
-        });
-
-        testIdentifier(reassignStatement.name, expectedIdentifier);
-
-        it('value has expected value', () => {
-          assert.strictEqual(reassignStatement.value.asString(), expectedValue.toString());
-        });
+        testReassignExpression(reassignStatement, expectedIdentifier, expectedValue);
       });
     });
 
@@ -452,6 +461,45 @@ describe('Parser', () => {
         testIdentifier(alternativeStatement.expression as Identifier, 'y');
       }
     });
+  });
+
+  describe('while expression parsing', () => {
+    const input = 'while (x < y) { x = x + 1; }';
+
+    const { program, parser } = getProgramAndParser(input);
+
+    it('has no errors', () => hasNoErrors(parser));
+
+    it('has 1 statement', () => {
+      assert.strictEqual(program.statements.length, 1);
+    });
+
+    it('first statement is instance of ExpressionStatement', () => {
+      assert.ok(program.statements[0] instanceof ExpressionStatement);
+    });
+
+    const whileExpression = (program.statements[0] as ExpressionStatement).expression as WhileExpression;
+
+    it('first statement expression is instance of WhileExpression', () => {
+      assert.ok(whileExpression instanceof WhileExpression);
+    });
+
+    const condition = whileExpression.condition as InfixExpression;
+
+    it('while expression is infix expression', () => {
+      assert.ok(condition instanceof InfixExpression);
+    });
+
+    testInfixExpression(condition, 'x', '<', 'y');
+
+    const block = whileExpression.block;
+
+    it('consequence has 1 statement', () => {
+      assert.strictEqual(block.statements.length, 1);
+    });
+
+    const firstStatement = block.statements[0] as ReassignStatement;
+    testReassignExpression(firstStatement, 'x', '(x + 1)');
   });
 
   describe('function literal parsing', () => {

@@ -288,15 +288,12 @@ export class InfixExpression implements Expression {
 
 export class IfExpression implements Expression {
   token: Token = { type: TokenType.IF, literal: getKeywordLiteral(TokenType.IF) };
-  condition: Expression;
-  consequence: BlockStatement;
-  alternative: BlockStatement | null;
 
-  constructor(condition: Expression, consequence: BlockStatement, alternative: BlockStatement | null) {
-    this.condition = condition;
-    this.consequence = consequence;
-    this.alternative = alternative;
-  }
+  constructor(
+    public condition: Expression,
+    public consequence: BlockStatement,
+    public alternative: BlockStatement | null
+  ) {}
 
   asString(): string {
     let result = `if ${this.condition.asString()} ${this.consequence.asString()}`;
@@ -313,15 +310,32 @@ export class IfExpression implements Expression {
   }
 }
 
+export class WhileExpression implements Expression {
+  token: Token = { type: TokenType.WHILE, literal: getKeywordLiteral(TokenType.WHILE) };
+
+  constructor(
+    public condition: Expression,
+    public block: BlockStatement
+  ) {}
+
+  asString(): string {
+    return `while ${this.condition.asString()} ${this.block.asString()}`;
+  }
+
+  expressionNode(): void {}
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
 export class FunctionLiteral implements Expression {
   token: Token = { type: TokenType.FUNCTION, literal: getKeywordLiteral(TokenType.FUNCTION) };
-  parameters: Identifier[];
-  body: BlockStatement;
 
-  constructor(parameters: Identifier[], body: BlockStatement) {
-    this.parameters = parameters;
-    this.body = body;
-  }
+  constructor(
+    public parameters: Identifier[],
+    public body: BlockStatement
+  ) {}
 
   asString(): string {
     return `${this.tokenLiteral()}(${this.parameters.map((param) => param.asString()).join(', ')}) ${this.body.asString()}`;

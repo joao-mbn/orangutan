@@ -43,7 +43,8 @@ export enum TokenType {
   FALSE = 'FALSE',
   IF = 'IF',
   ELSE = 'ELSE',
-  RETURN = 'RETURN'
+  RETURN = 'RETURN',
+  WHILE = 'WHILE'
 }
 
 export type Token = {
@@ -58,7 +59,8 @@ export const keywords: Map<string, TokenType> = new Map([
   ['false', TokenType.FALSE],
   ['if', TokenType.IF],
   ['else', TokenType.ELSE],
-  ['return', TokenType.RETURN]
+  ['return', TokenType.RETURN],
+  ['while', TokenType.WHILE]
 ]);
 
 export function getKeywordLiteral(tokenType: TokenType) {

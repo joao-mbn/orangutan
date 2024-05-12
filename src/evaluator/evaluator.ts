@@ -18,7 +18,8 @@ import {
   Program,
   ReassignStatement,
   ReturnStatement,
-  StringLiteral
+  StringLiteral,
+  WhileExpression
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 import {
@@ -90,6 +91,10 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
 
   if (node instanceof IfExpression) {
     return evaluateIfExpression(node, environment);
+  }
+
+  if (node instanceof WhileExpression) {
+    return evaluateWhileExpression(node, environment);
   }
 
   if (node instanceof ReturnStatement) {
@@ -317,6 +322,28 @@ function evaluateIfExpression(node: IfExpression, environment: Environment): Int
   }
 
   return NULL;
+}
+
+function evaluateWhileExpression(node: WhileExpression, environment: Environment): InternalObject {
+  let result: InternalObject = NULL;
+
+  while (true) {
+    const condition = evaluator(node.condition, environment);
+    if (isError(condition)) {
+      return condition;
+    }
+
+    if (!isTruthy(condition)) {
+      break;
+    }
+
+    result = evaluator(node.block, environment);
+    if (result instanceof ReturnValueObject || result instanceof ErrorObject) {
+      break;
+    }
+  }
+
+  return result;
 }
 
 function evaluateIdentifier(node: Identifier, environment: Environment): InternalObject {

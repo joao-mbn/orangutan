@@ -18,7 +18,8 @@ import {
   ReassignStatement,
   ReturnStatement,
   Statement,
-  StringLiteral
+  StringLiteral,
+  WhileExpression
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Token, TokenType } from '../token/token';
@@ -67,6 +68,7 @@ export class Parser {
     [TokenType.FALSE, this.parseBoolean.bind(this)],
     [TokenType.LPAREN, this.parseGroupedExpression.bind(this)],
     [TokenType.IF, this.parseIfExpression.bind(this)],
+    [TokenType.WHILE, this.parseWhileExpression.bind(this)],
     [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)],
     [TokenType.STRING, this.parseStringLiteral.bind(this)],
     [TokenType.LBRACKET, this.parseArrayLiteral.bind(this)],
@@ -347,6 +349,32 @@ export class Parser {
     }
 
     return new IfExpression(condition, consequence, alternative);
+  }
+
+  parseWhileExpression(): Expression | null {
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      return null;
+    }
+
+    this.nextToken();
+
+    const condition = this.parseExpression(Precedence.LOWEST);
+
+    if (!condition) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.RPAREN)) {
+      return null;
+    }
+
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null;
+    }
+
+    const block = this.parseBlockStatement();
+
+    return new WhileExpression(condition, block);
   }
 
   parseBlockStatement(): BlockStatement {

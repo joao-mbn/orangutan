@@ -38,6 +38,10 @@ if (5 < 10) {
 
 |% &%
 
+while (condition) {
+  execute();
+}
+
 `;
 
   const tests: Token[] = [
@@ -132,6 +136,16 @@ if (5 < 10) {
     { type: TokenType.AND, literal: '&&' },
     { type: TokenType.ILLEGAL, literal: '|%' },
     { type: TokenType.ILLEGAL, literal: '&%' },
+    { type: TokenType.WHILE, literal: 'while' },
+    { type: TokenType.LPAREN, literal: '(' },
+    { type: TokenType.IDENT, literal: 'condition' },
+    { type: TokenType.RPAREN, literal: ')' },
+    { type: TokenType.LBRACE, literal: '{' },
+    { type: TokenType.IDENT, literal: 'execute' },
+    { type: TokenType.LPAREN, literal: '(' },
+    { type: TokenType.RPAREN, literal: ')' },
+    { type: TokenType.SEMICOLON, literal: ';' },
+    { type: TokenType.RBRACE, literal: '}' },
     { type: TokenType.EOF, literal: '' }
   ];
 
