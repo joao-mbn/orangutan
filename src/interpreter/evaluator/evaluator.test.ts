@@ -15,6 +15,32 @@ import { getProgramAndParser } from '../parser/parser.test';
 import { FALSE_OBJECT, NULL, TRUE_OBJECT } from './defaultObjects';
 import { evaluator } from './evaluator';
 
+export function testIntegerObject(object: InternalObject, expected: number) {
+  it('object is IntegerObject', () => {
+    assert.ok(object instanceof IntegerObject);
+  });
+
+  it(`should evaluate to ${expected}`, () => {
+    assert.strictEqual(object.inspect(), expected.toString());
+  });
+}
+
+export function testBooleanObject(object: InternalObject, expected: boolean) {
+  it('object is BooleanObject', () => {
+    assert.ok(object instanceof BooleanObject);
+  });
+
+  it(`should evaluate to ${expected}`, () => {
+    assert.strictEqual(object.inspect(), expected.toString());
+  });
+}
+
+export function testNullObject(object: InternalObject) {
+  it('object is NULL', () => {
+    assert.strictEqual(object, NULL);
+  });
+}
+
 describe('Evaluator', () => {
   function testEvaluator(input: string) {
     const { program } = getProgramAndParser(input);
@@ -26,32 +52,6 @@ describe('Evaluator', () => {
     }
 
     return evaluated;
-  }
-
-  function testIntegerObject(object: InternalObject, expected: number) {
-    it('object is IntegerObject', () => {
-      assert.ok(object instanceof IntegerObject);
-    });
-
-    it(`should evaluate to ${expected}`, () => {
-      assert.strictEqual(object.inspect(), expected.toString());
-    });
-  }
-
-  function testBooleanObject(object: InternalObject, expected: boolean) {
-    it('object is BooleanObject', () => {
-      assert.ok(object instanceof BooleanObject);
-    });
-
-    it(`should evaluate to ${expected}`, () => {
-      assert.strictEqual(object.inspect(), expected.toString());
-    });
-  }
-
-  function testNullObject(object: InternalObject) {
-    it('object is NULL', () => {
-      assert.strictEqual(object, NULL);
-    });
   }
 
   describe('evaluate integer expression', () => {
