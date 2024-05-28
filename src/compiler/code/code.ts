@@ -53,6 +53,12 @@ export class Instructions extends Uint8Array {
         return `ERROR: unhandled operandCount of ${operandCount}`;
     }
   }
+
+  slice(start?: number | undefined, end?: number | undefined) {
+    const result = super.slice(start, end);
+
+    return new Instructions(result);
+  }
 }
 
 export function concatInstructions(instructions: Instructions[]) {
@@ -123,7 +129,7 @@ export function readOperands(
   let offset = 0;
 
   definition.operandWidths.forEach((width) => {
-    const slice = new Instructions(instructions.slice(offset, offset + width));
+    const slice = instructions.slice(offset, offset + width);
 
     switch (width) {
       case 2:
@@ -138,7 +144,6 @@ export function readOperands(
   return { operands, offset };
 }
 
-function readUint16(slice: Instructions): number {
+export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
-

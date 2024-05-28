@@ -6,11 +6,11 @@ import { getProgramAndParser } from '../../interpreter/parser/parser.test';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
 
-describe('Test Compiler', () => {
-  function parse(input: string) {
-    return getProgramAndParser(input).program;
-  }
+export function parse(input: string) {
+  return getProgramAndParser(input).program;
+}
 
+describe('Test Compiler', () => {
   function testInstructions(expected: Instructions[], actual: Instructions) {
     const expectedInstructions = concatInstructions(expected);
 
@@ -65,9 +65,9 @@ describe('Test Compiler', () => {
       const program = parse(tt.input);
       const compiler = new Compiler();
 
-      const result = compiler.compile(program);
+      const error = compiler.compile(program);
       it('should not throw an error', () => {
-        assert.deepEqual(result, null);
+        assert.deepEqual(error, null);
       });
 
       const bytecode = compiler.bytecode();
@@ -77,4 +77,3 @@ describe('Test Compiler', () => {
     });
   });
 });
-
