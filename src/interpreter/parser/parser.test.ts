@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { getProgramAndParser } from '../../testTools';
 import {
   ArrayLiteral,
   BlockStatement,
@@ -21,21 +22,7 @@ import {
   StringLiteral,
   WhileExpression
 } from '../ast/ast';
-import { Lexer } from '../lexer/lexer';
 import { Parser } from './parser';
-
-export function getProgramAndParser(input: string) {
-  const lexer = new Lexer(input);
-  const parser = new Parser(lexer);
-
-  const program = parser.parseProgram();
-
-  if (program == null) {
-    throw new Error('ParseProgram() returned null');
-  }
-
-  return { program, parser };
-}
 
 describe('Parser', () => {
   function hasNoErrors(parser: Parser) {
@@ -868,4 +855,3 @@ describe('Parser', () => {
     });
   });
 });
-

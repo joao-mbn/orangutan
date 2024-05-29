@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { testIntegerObject } from '../../interpreter/evaluator/evaluator.test';
 import { InternalObject } from '../../interpreter/object/object';
-import { getProgramAndParser } from '../../interpreter/parser/parser.test';
+import { parse, testIntegerObject } from '../../testTools';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
-
-export function parse(input: string) {
-  return getProgramAndParser(input).program;
-}
 
 describe('Test Compiler', () => {
   function testInstructions(expected: Instructions[], actual: Instructions) {
@@ -18,7 +13,7 @@ describe('Test Compiler', () => {
       assert.strictEqual(
         actual.length,
         expectedInstructions.length,
-        `wrong instruction length: expected ${expectedInstructions.asString()}, but got ${actual.asString()}`
+        `wrong instruction length!\n expected: ${expectedInstructions.asString()}\n got: ${actual.asString()}`
       );
     });
 
@@ -57,7 +52,7 @@ describe('Test Compiler', () => {
       {
         input: '1 + 2',
         expectedConstants: [1, 2],
-        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1)]
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1), make(Opcode.OpAdd)]
       }
     ];
 

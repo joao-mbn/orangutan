@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { testIntegerObject } from '../../interpreter/evaluator/evaluator.test';
 import { InternalObject } from '../../interpreter/object/object';
+import { parse, testIntegerObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
-import { parse } from '../compiler/compiler.test';
 import { VM } from './vm';
 
 describe('Test VM', () => {
@@ -19,7 +18,7 @@ describe('Test VM', () => {
   const tests: { input: string; expected: unknown }[] = [
     { input: '1', expected: 1 },
     { input: '2', expected: 2 },
-    { input: '1 + 2', expected: 2 } // FIXME:
+    { input: '1 + 2', expected: 3 }
   ];
 
   tests.forEach(({ input, expected }) => {

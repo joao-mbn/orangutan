@@ -4,13 +4,14 @@ import { DEFINITIONS, Instructions, Opcode, concatInstructions, make, readOperan
 
 describe('Instructions', () => {
   it('outputs correct string', () => {
-    const instructions = [make(Opcode.OpConstant, 1), make(Opcode.OpConstant, 2), make(Opcode.OpConstant, 65535)];
+    const instructions = [make(Opcode.OpAdd), make(Opcode.OpConstant, 2), make(Opcode.OpConstant, 65535)];
 
     const concated = concatInstructions(instructions);
 
-    const expected = `0000 OpConstant 1
-0003 OpConstant 2
-0006 OpConstant 65535`;
+    const expected = `
+0000 OpAdd
+0001 OpConstant 2
+0004 OpConstant 65535`;
 
     assert.strictEqual(concated.asString(), expected);
   });
@@ -18,7 +19,8 @@ describe('Instructions', () => {
 
 describe('make', () => {
   const tests: { op: Opcode; operands: number[]; expected: Uint8Array }[] = [
-    { op: Opcode.OpConstant, operands: [65534], expected: new Uint8Array([0, 255, 254]) }
+    { op: Opcode.OpConstant, operands: [65534], expected: new Uint8Array([0, 255, 254]) },
+    { op: Opcode.OpAdd, operands: [], expected: new Uint8Array([1]) }
   ];
 
   tests.forEach((tt) => {
@@ -61,4 +63,3 @@ describe('readOperands', () => {
     });
   });
 });
-

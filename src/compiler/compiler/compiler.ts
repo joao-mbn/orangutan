@@ -37,6 +37,14 @@ export class Compiler {
         if (rightError) {
           return rightError;
         }
+
+        switch (node.operator) {
+          case '+':
+            this.emit(Opcode.OpAdd);
+            break;
+          default:
+            return new Error(`Unknown operator ${node.operator}`);
+        }
         break;
       case node instanceof IntegerLiteral:
         const integer = new IntegerObject(node.value);
@@ -80,4 +88,3 @@ export class Bytecode {
     this.constants = constants;
   }
 }
-

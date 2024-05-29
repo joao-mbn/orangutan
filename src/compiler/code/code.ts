@@ -1,3 +1,18 @@
+export enum Opcode {
+  OpConstant = 0,
+  OpAdd = 1
+}
+
+export interface Definition {
+  name: string;
+  operandWidths: number[]; // number of bytes that each operand takes
+}
+
+export const DEFINITIONS: Record<Opcode, Definition> = {
+  [Opcode.OpConstant]: { name: 'OpConstant', operandWidths: [2] },
+  [Opcode.OpAdd]: { name: 'OpAdd', operandWidths: [] }
+};
+
 export class Instructions extends Uint8Array {
   constructor(length: number);
   constructor(array: Iterable<number>);
@@ -33,11 +48,11 @@ export class Instructions extends Uint8Array {
       const { operands, offset } = readOperands(definition, new Instructions(this.slice(i + 1)));
       const formatted = this.formatInstruction(definition, operands);
 
-      string += `${i.toString().padStart(4, '0')} ${formatted}\n`;
+      string += `\n${i.toString().padStart(4, '0')} ${formatted}`;
       i += offset + 1;
     }
 
-    return string.trim();
+    return string;
   }
 
   formatInstruction(definition: Definition, operands: number[]): string {
@@ -47,6 +62,8 @@ export class Instructions extends Uint8Array {
     }
 
     switch (operandCount) {
+      case 0:
+        return definition.name;
       case 1:
         return `${definition.name} ${operands[0]}`;
       default:
@@ -74,19 +91,6 @@ export function concatInstructions(instructions: Instructions[]) {
   return merged;
 }
 
-export enum Opcode {
-  OpConstant = 0
-}
-
-export interface Definition {
-  name: string;
-  operandWidths: number[]; // number of bytes that each operand takes
-}
-
-export const DEFINITIONS: Record<Opcode, Definition> = {
-  [Opcode.OpConstant]: { name: 'OpConstant', operandWidths: [2] }
-};
-
 export function make(op: Opcode, ...operands: number[]): Instructions {
   const definition = DEFINITIONS[op];
   if (!definition) {
@@ -97,6 +101,7 @@ export function make(op: Opcode, ...operands: number[]): Instructions {
   const instructionLength = definition.operandWidths.reduce((a, b) => a + b, opCodeLength);
 
   const instructions = new Instructions(instructionLength);
+  instructions[0] = op;
 
   let offset = opCodeLength;
   operands.forEach((operand, i) => {

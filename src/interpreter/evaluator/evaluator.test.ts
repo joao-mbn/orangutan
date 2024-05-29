@@ -1,45 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { getProgramAndParser, testBooleanObject, testIntegerObject, testNullObject } from '../../testTools';
 import { Environment } from '../object/environment';
-import {
-  ArrayObject,
-  BooleanObject,
-  ErrorObject,
-  FunctionObject,
-  HashObject,
-  IntegerObject,
-  InternalObject,
-  StringObject
-} from '../object/object';
-import { getProgramAndParser } from '../parser/parser.test';
-import { FALSE_OBJECT, NULL, TRUE_OBJECT } from './defaultObjects';
+import { ArrayObject, ErrorObject, FunctionObject, HashObject, IntegerObject, StringObject } from '../object/object';
+import { FALSE_OBJECT, TRUE_OBJECT } from './defaultObjects';
 import { evaluator } from './evaluator';
-
-export function testIntegerObject(object: InternalObject, expected: number) {
-  it('object is IntegerObject', () => {
-    assert.ok(object instanceof IntegerObject);
-  });
-
-  it(`should evaluate to ${expected}`, () => {
-    assert.strictEqual(object.inspect(), expected.toString());
-  });
-}
-
-export function testBooleanObject(object: InternalObject, expected: boolean) {
-  it('object is BooleanObject', () => {
-    assert.ok(object instanceof BooleanObject);
-  });
-
-  it(`should evaluate to ${expected}`, () => {
-    assert.strictEqual(object.inspect(), expected.toString());
-  });
-}
-
-export function testNullObject(object: InternalObject) {
-  it('object is NULL', () => {
-    assert.strictEqual(object, NULL);
-  });
-}
 
 describe('Evaluator', () => {
   function testEvaluator(input: string) {
@@ -512,4 +477,3 @@ describe('Evaluator', () => {
     });
   });
 });
-

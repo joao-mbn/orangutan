@@ -1,4 +1,4 @@
-import { InternalObject } from '../../interpreter/object/object';
+import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 
@@ -43,6 +43,31 @@ export class VM {
           }
 
           break;
+        case Opcode.OpAdd:
+          const right = this.pop();
+          if (right instanceof Error) {
+            return right;
+          }
+          const left = this.pop();
+          if (left instanceof Error) {
+            return left;
+          }
+
+          if (left.objectType() !== right.objectType()) {
+            return new Error(`type mismatch: ${left.objectType()} + ${right.objectType()}`);
+          }
+
+          if (left instanceof IntegerObject && right instanceof IntegerObject) {
+            const result = new IntegerObject(left.value + right.value);
+            const pushError = this.push(result);
+            if (pushError) {
+              return pushError;
+            }
+          } else {
+            return new Error(`add operation unsupported for ${left.objectType()} and ${right.objectType()}`);
+          }
+
+          break;
         default:
           throw new Error(`unknown opcode: ${opcode}`);
       }
@@ -60,5 +85,17 @@ export class VM {
     this.stackPointer++;
 
     return null;
+  }
+
+  pop() {
+    if (this.stackPointer === 0) {
+      return new Error('stack underflow');
+    }
+
+    const popped = this.stack[this.stackPointer - 1];
+
+    this.stackPointer--;
+
+    return popped;
   }
 }
