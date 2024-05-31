@@ -449,7 +449,7 @@ function applyFunction(fn: InternalObject, args: InternalObject[]): InternalObje
   return new ErrorObject(`not a function: ${fn.objectType()}`);
 }
 
-function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
+export function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
   return value ? TRUE_OBJECT : FALSE_OBJECT;
 }
 

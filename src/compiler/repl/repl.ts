@@ -38,7 +38,7 @@ export function start() {
           console.error('Runtime error');
         }
 
-        const stackTop = vm.stackTop();
+        const stackTop = vm.lastPoppedStackElement();
         if (stackTop) {
           console.log(stackTop.inspect());
         } else {
@@ -57,3 +57,4 @@ export function start() {
     }
   });
 }
+

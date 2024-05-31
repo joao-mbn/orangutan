@@ -1,4 +1,11 @@
-import { AstNode, ExpressionStatement, InfixExpression, IntegerLiteral, Program } from '../../interpreter/ast/ast';
+import {
+  AstNode,
+  BooleanLiteral,
+  ExpressionStatement,
+  InfixExpression,
+  IntegerLiteral,
+  Program
+} from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 
@@ -26,14 +33,17 @@ export class Compiler {
         if (error) {
           return error;
         }
+        this.emit(Opcode.OpPop);
         break;
       case node instanceof InfixExpression:
-        const leftError = this.compile(node.left);
+        const shouldInvert = node.operator === '<';
+
+        const leftError = this.compile(shouldInvert ? node.right : node.left);
         if (leftError) {
           return leftError;
         }
 
-        const rightError = this.compile(node.right);
+        const rightError = this.compile(shouldInvert ? node.left : node.right);
         if (rightError) {
           return rightError;
         }
@@ -42,6 +52,25 @@ export class Compiler {
           case '+':
             this.emit(Opcode.OpAdd);
             break;
+          case '-':
+            this.emit(Opcode.OpSub);
+            break;
+          case '*':
+            this.emit(Opcode.OpMul);
+            break;
+          case '/':
+            this.emit(Opcode.OpDiv);
+            break;
+          case '==':
+            this.emit(Opcode.OpEqual);
+            break;
+          case '!=':
+            this.emit(Opcode.OpNotEqual);
+            break;
+          case '<':
+          case '>':
+            this.emit(Opcode.OpGreaterThan);
+            break;
           default:
             return new Error(`Unknown operator ${node.operator}`);
         }
@@ -49,6 +78,13 @@ export class Compiler {
       case node instanceof IntegerLiteral:
         const integer = new IntegerObject(node.value);
         this.emit(Opcode.OpConstant, this.addConstant(integer));
+        break;
+      case node instanceof BooleanLiteral:
+        if (node.value) {
+          this.emit(Opcode.OpTrue);
+        } else {
+          this.emit(Opcode.OpFalse);
+        }
         break;
       default:
         throw new Error('Not implemented');
@@ -88,3 +124,4 @@ export class Bytecode {
     this.constants = constants;
   }
 }
+

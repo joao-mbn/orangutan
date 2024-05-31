@@ -40,7 +40,8 @@ describe('make', () => {
 
 describe('readOperands', () => {
   const tests: { op: Opcode; operands: number[]; bytesRead: number }[] = [
-    { op: Opcode.OpConstant, operands: [65535], bytesRead: 2 }
+    { op: Opcode.OpConstant, operands: [65535], bytesRead: 2 },
+    { op: Opcode.OpAdd, operands: [], bytesRead: 0 }
   ];
 
   tests.forEach((tt) => {
@@ -63,3 +64,4 @@ describe('readOperands', () => {
     });
   });
 });
+

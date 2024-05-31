@@ -2,7 +2,7 @@
   "name": "orangutan",
   "scripts": {
     "start-interpreter": "npx ts-node src/interpreter/index.ts",
-    "start-compiler": "node dist/compiler/index.js",
+    "start-compiler": "npm run compile && node dist/compiler/index.js",
     "compile": "tsc",
     "test": "npm run compile && node --test dist/**/**/*.test.js",
     "test-interpreter": "npm run compile && node --test dist/interpreter/**/*.test.js",
@@ -18,3 +18,4 @@
     "typescript": "^5.4.2"
   }
 }
+

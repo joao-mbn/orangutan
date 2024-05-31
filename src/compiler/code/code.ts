@@ -1,6 +1,17 @@
 export enum Opcode {
   OpConstant = 0,
-  OpAdd = 1
+  OpAdd = 1,
+  OpPop = 2,
+  OpSub = 3,
+  OpMul = 4,
+  OpDiv = 5,
+  /* Having booleans with their own Opcode instead of constants avoids roundtrips of adding to (compiler) and reading from (vm) the pool constants. */
+  OpTrue = 6,
+  OpFalse = 7,
+  OpEqual = 8,
+  OpNotEqual = 9,
+  /* No need for OpLessThen, as we can simply invert the order of the right and left side with OpGraterThan */
+  OpGreaterThan = 10
 }
 
 export interface Definition {
@@ -10,7 +21,16 @@ export interface Definition {
 
 export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpConstant]: { name: 'OpConstant', operandWidths: [2] },
-  [Opcode.OpAdd]: { name: 'OpAdd', operandWidths: [] }
+  [Opcode.OpAdd]: { name: 'OpAdd', operandWidths: [] },
+  [Opcode.OpPop]: { name: 'OpPop', operandWidths: [] },
+  [Opcode.OpSub]: { name: 'OpSub', operandWidths: [] },
+  [Opcode.OpMul]: { name: 'OpMul', operandWidths: [] },
+  [Opcode.OpDiv]: { name: 'OpDiv', operandWidths: [] },
+  [Opcode.OpTrue]: { name: 'OpTrue', operandWidths: [] },
+  [Opcode.OpFalse]: { name: 'OpFalse', operandWidths: [] },
+  [Opcode.OpEqual]: { name: 'OpEqual', operandWidths: [] },
+  [Opcode.OpNotEqual]: { name: 'OpNotEqual', operandWidths: [] },
+  [Opcode.OpGreaterThan]: { name: 'OpGreaterThan', operandWidths: [] }
 };
 
 export class Instructions extends Uint8Array {
@@ -152,3 +172,4 @@ export function readOperands(
 export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
+
