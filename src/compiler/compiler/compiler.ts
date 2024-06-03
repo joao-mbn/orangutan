@@ -4,6 +4,7 @@ import {
   ExpressionStatement,
   InfixExpression,
   IntegerLiteral,
+  PrefixExpression,
   Program
 } from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
@@ -19,17 +20,18 @@ export class Compiler {
   }
 
   compile(node: AstNode): Error | null {
+    let error: Error | null = null;
     switch (true) {
       case node instanceof Program:
         for (const statement of node.statements) {
-          const error = this.compile(statement);
+          error = this.compile(statement);
           if (error) {
             return error;
           }
         }
         break;
       case node instanceof ExpressionStatement:
-        const error = this.compile(node.expression);
+        error = this.compile(node.expression);
         if (error) {
           return error;
         }
@@ -38,14 +40,14 @@ export class Compiler {
       case node instanceof InfixExpression:
         const shouldInvert = node.operator === '<';
 
-        const leftError = this.compile(shouldInvert ? node.right : node.left);
-        if (leftError) {
-          return leftError;
+        error = this.compile(shouldInvert ? node.right : node.left);
+        if (error) {
+          return error;
         }
 
-        const rightError = this.compile(shouldInvert ? node.left : node.right);
-        if (rightError) {
-          return rightError;
+        error = this.compile(shouldInvert ? node.left : node.right);
+        if (error) {
+          return error;
         }
 
         switch (node.operator) {
@@ -70,6 +72,23 @@ export class Compiler {
           case '<':
           case '>':
             this.emit(Opcode.OpGreaterThan);
+            break;
+          default:
+            return new Error(`Unknown operator ${node.operator}`);
+        }
+        break;
+      case node instanceof PrefixExpression:
+        error = this.compile(node.right);
+        if (error) {
+          return error;
+        }
+
+        switch (node.operator) {
+          case '!':
+            this.emit(Opcode.OpBang);
+            break;
+          case '-':
+            this.emit(Opcode.OpMinus);
             break;
           default:
             return new Error(`Unknown operator ${node.operator}`);

@@ -159,6 +159,16 @@ describe('Test Compiler', () => {
         input: 'true != false',
         expectedConstants: [],
         expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpNotEqual), make(Opcode.OpPop)]
+      },
+      {
+        input: '-1',
+        expectedConstants: [1],
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpMinus), make(Opcode.OpPop)]
+      },
+      {
+        input: '!true',
+        expectedConstants: [],
+        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpBang), make(Opcode.OpPop)]
       }
     ];
 

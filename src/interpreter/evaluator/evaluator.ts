@@ -453,7 +453,7 @@ export function nativeBooleanToBooleanObject(value: boolean): BooleanObject {
   return value ? TRUE_OBJECT : FALSE_OBJECT;
 }
 
-function isTruthy(object: InternalObject): boolean {
+export function isTruthy(object: InternalObject): boolean {
   if (object === NULL || object === FALSE_OBJECT) {
     return false;
   }

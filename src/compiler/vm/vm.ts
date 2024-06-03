@@ -1,5 +1,5 @@
 import { FALSE_OBJECT, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
-import { nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
+import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
@@ -84,8 +84,38 @@ export class VM {
           }
 
           break;
+        case Opcode.OpMinus:
+          const top = this.pop();
+          if (top instanceof Error) {
+            return top;
+          }
+
+          if (!(top instanceof IntegerObject)) {
+            return new Error(`unsupported type for negation: ${top.objectType()}`);
+          }
+
+          error = this.push(new IntegerObject(-top.value));
+          if (error) {
+            return error;
+          }
+
+          break;
+        case Opcode.OpBang:
+          const operand = this.pop();
+          if (operand instanceof Error) {
+            return operand;
+          }
+
+          const negated = isTruthy(operand) ? FALSE_OBJECT : TRUE_OBJECT;
+          error = this.push(negated);
+
+          if (error) {
+            return error;
+          }
+
+          break;
         default:
-          throw new Error(`unknown opcode: ${opcode}`);
+          return new Error(`unknown opcode: ${opcode}`);
       }
     }
 

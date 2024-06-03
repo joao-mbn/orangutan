@@ -47,3 +47,4 @@ export function testNullObject(object: InternalObject) {
     assert.strictEqual(object, NULL);
   });
 }
+
