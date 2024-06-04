@@ -13,7 +13,9 @@ export enum Opcode {
   /* No need for OpLessThen, as we can simply invert the order of the right and left side with OpGraterThan */
   OpGreaterThan = 10,
   OpMinus = 11,
-  OpBang = 12
+  OpBang = 12,
+  OpJumpNotTruthy = 13,
+  OpJump = 14
 }
 
 export interface Definition {
@@ -34,7 +36,9 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpNotEqual]: { name: 'OpNotEqual', operandWidths: [] },
   [Opcode.OpGreaterThan]: { name: 'OpGreaterThan', operandWidths: [] },
   [Opcode.OpMinus]: { name: 'OpMinus', operandWidths: [] },
-  [Opcode.OpBang]: { name: 'OpBang', operandWidths: [] }
+  [Opcode.OpBang]: { name: 'OpBang', operandWidths: [] },
+  [Opcode.OpJumpNotTruthy]: { name: 'OpJumpNotTruthy', operandWidths: [2] },
+  [Opcode.OpJump]: { name: 'OpJump', operandWidths: [2] }
 };
 
 export class Instructions extends Uint8Array {
@@ -176,4 +180,3 @@ export function readOperands(
 export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
-

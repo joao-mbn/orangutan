@@ -5,6 +5,8 @@ import { parse, testIntegerObject } from '../../testTools';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
 
+type TestCases = { input: string; expectedConstants: unknown[]; expectedInstructions: Instructions[] }[];
+
 describe('Test Compiler', () => {
   function testInstructions(expected: Instructions[], actual: Instructions) {
     const expectedInstructions = concatInstructions(expected);
@@ -45,6 +47,23 @@ describe('Test Compiler', () => {
         default:
           break;
       }
+    });
+  }
+
+  function testCompiler(tests: TestCases) {
+    tests.forEach((tt) => {
+      const program = parse(tt.input);
+      const compiler = new Compiler();
+
+      const error = compiler.compile(program);
+      it('should not throw an error', () => {
+        assert.deepEqual(error, null);
+      });
+
+      const bytecode = compiler.bytecode();
+
+      testInstructions(tt.expectedInstructions, bytecode.instructions);
+      testConstants(tt.expectedConstants, bytecode.constants);
     });
   }
 
@@ -101,6 +120,18 @@ describe('Test Compiler', () => {
         ]
       },
       {
+        input: '-1',
+        expectedConstants: [1],
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpMinus), make(Opcode.OpPop)]
+      }
+    ];
+
+    testCompiler(tests);
+  });
+
+  describe('Test boolean expressions', () => {
+    const tests = [
+      {
         input: 'true',
         expectedConstants: [],
         expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpPop)]
@@ -109,7 +140,14 @@ describe('Test Compiler', () => {
         input: 'false',
         expectedConstants: [],
         expectedInstructions: [make(Opcode.OpFalse), make(Opcode.OpPop)]
-      },
+      }
+    ];
+
+    testCompiler(tests);
+  });
+
+  describe('Test comparisons', () => {
+    const tests = [
       {
         input: '1 > 2',
         expectedConstants: [1, 2],
@@ -160,11 +198,7 @@ describe('Test Compiler', () => {
         expectedConstants: [],
         expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpNotEqual), make(Opcode.OpPop)]
       },
-      {
-        input: '-1',
-        expectedConstants: [1],
-        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpMinus), make(Opcode.OpPop)]
-      },
+
       {
         input: '!true',
         expectedConstants: [],
@@ -172,20 +206,25 @@ describe('Test Compiler', () => {
       }
     ];
 
-    tests.forEach((tt) => {
-      const program = parse(tt.input);
-      const compiler = new Compiler();
+    testCompiler(tests);
+  });
 
-      const error = compiler.compile(program);
-      it('should not throw an error', () => {
-        assert.deepEqual(error, null);
-      });
+  describe('Test conditionals', () => {
+    const tests: TestCases = [
+      {
+        input: 'if (true) { 10 }; 3333;',
+        expectedConstants: [10, 3333],
+        expectedInstructions: [
+          make(Opcode.OpTrue), // 0000
+          make(Opcode.OpJumpNotTruthy, 7), // 0001
+          make(Opcode.OpConstant, 0), // 0004
+          make(Opcode.OpPop), // 0007
+          make(Opcode.OpConstant, 1), // 0008
+          make(Opcode.OpPop) // 0011
+        ]
+      }
+    ];
 
-      const bytecode = compiler.bytecode();
-
-      testInstructions(tt.expectedInstructions, bytecode.instructions);
-      testConstants(tt.expectedConstants, bytecode.constants);
-    });
+    testCompiler(tests);
   });
 });
-

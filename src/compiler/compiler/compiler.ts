@@ -1,7 +1,9 @@
 import {
   AstNode,
+  BlockStatement,
   BooleanLiteral,
   ExpressionStatement,
+  IfExpression,
   InfixExpression,
   IntegerLiteral,
   PrefixExpression,
@@ -13,16 +15,23 @@ import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 export class Compiler {
   instructions: Instructions;
   constants: InternalObject[];
+  lastInstruction: EmittedInstruction;
+  previousInstruction: EmittedInstruction;
 
   constructor() {
     this.instructions = new Instructions(0);
     this.constants = [];
+
+    /* bogus values */
+    this.lastInstruction = { opcode: Opcode.OpConstant, position: -1 };
+    this.previousInstruction = { opcode: Opcode.OpConstant, position: -1 };
   }
 
   compile(node: AstNode): Error | null {
     let error: Error | null = null;
     switch (true) {
       case node instanceof Program:
+      case node instanceof BlockStatement:
         for (const statement of node.statements) {
           error = this.compile(statement);
           if (error) {
@@ -105,6 +114,29 @@ export class Compiler {
           this.emit(Opcode.OpFalse);
         }
         break;
+      case node instanceof IfExpression:
+        error = this.compile(node.condition);
+        if (error) {
+          return error;
+        }
+
+        // Create jump to with bogus value to be corrected once we compile the consequence and know its length. Bogus value inserted for clarity, not really needed.
+        const opJumpPosition = this.emit(Opcode.OpJumpNotTruthy, 9999);
+
+        error = this.compile(node.consequence);
+        if (error) {
+          return error;
+        }
+
+        if (this.lastInstructionIsPop()) {
+          this.removeLastPop();
+        }
+
+        /* The jump position is the one just after the last instruction after the consequence */
+        const lastPosition = this.instructions.length;
+        this.changeOperand(opJumpPosition, lastPosition);
+
+        break;
       default:
         throw new Error('Not implemented');
     }
@@ -118,6 +150,8 @@ export class Compiler {
   emit(op: Opcode, ...operands: number[]) {
     const instruction = make(op, ...operands);
     const position = this.addInstruction(instruction);
+
+    this.setLastInstruction(op, position);
     return position;
   }
 
@@ -132,6 +166,33 @@ export class Compiler {
     this.constants.push(object);
     return this.constants.length - 1;
   }
+
+  setLastInstruction(opcode: Opcode, position: number) {
+    this.previousInstruction = this.lastInstruction;
+    this.lastInstruction = { opcode, position };
+  }
+
+  lastInstructionIsPop() {
+    return this.lastInstruction.opcode === Opcode.OpPop;
+  }
+
+  removeLastPop() {
+    this.instructions = this.instructions.slice(0, this.instructions.length - 1);
+    this.lastInstruction = this.previousInstruction;
+  }
+
+  changeOperand(opPosition: number, operand: number) {
+    const opcode = this.instructions[opPosition] as Opcode;
+
+    const newInstruction = make(opcode, operand);
+    this.replaceInstruction(opPosition, newInstruction);
+  }
+
+  replaceInstruction(position: number, newInstruction: Instructions) {
+    for (let i = 0; i < newInstruction.length; i++) {
+      this.instructions[position + i] = newInstruction[i];
+    }
+  }
 }
 
 export class Bytecode {
@@ -144,3 +205,7 @@ export class Bytecode {
   }
 }
 
+type EmittedInstruction = {
+  opcode: Opcode;
+  position: number;
+};
