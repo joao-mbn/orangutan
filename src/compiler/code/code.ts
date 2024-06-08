@@ -15,7 +15,8 @@ export enum Opcode {
   OpMinus = 11,
   OpBang = 12,
   OpJumpNotTruthy = 13,
-  OpJump = 14
+  OpJump = 14,
+  OpNull = 15,
 }
 
 export interface Definition {
@@ -38,7 +39,8 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpMinus]: { name: 'OpMinus', operandWidths: [] },
   [Opcode.OpBang]: { name: 'OpBang', operandWidths: [] },
   [Opcode.OpJumpNotTruthy]: { name: 'OpJumpNotTruthy', operandWidths: [2] },
-  [Opcode.OpJump]: { name: 'OpJump', operandWidths: [2] }
+  [Opcode.OpJump]: { name: 'OpJump', operandWidths: [2] },
+  [Opcode.OpNull]: { name: 'OpNull', operandWidths: [] },
 };
 
 export class Instructions extends Uint8Array {
@@ -155,7 +157,7 @@ export function make(op: Opcode, ...operands: number[]): Instructions {
 
 export function readOperands(
   definition: Definition,
-  instructions: Instructions
+  instructions: Instructions,
 ): { operands: number[]; offset: number } {
   const operands: number[] = [];
 
@@ -180,3 +182,4 @@ export function readOperands(
 export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
+

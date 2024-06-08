@@ -1,4 +1,4 @@
-import { FALSE_OBJECT, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
+import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
 import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
@@ -75,6 +75,12 @@ export class VM {
             return error;
           }
           break;
+        case Opcode.OpNull:
+          error = this.push(NULL);
+          if (error) {
+            return error;
+          }
+          break;
         case Opcode.OpEqual:
         case Opcode.OpNotEqual:
         case Opcode.OpGreaterThan:
@@ -112,6 +118,25 @@ export class VM {
           if (error) {
             return error;
           }
+
+          break;
+        case Opcode.OpJumpNotTruthy:
+          const condition = this.pop();
+          if (condition instanceof Error) {
+            return condition;
+          }
+
+          if (!isTruthy(condition)) {
+            const jumpToIndex = readUint16(this.instructions.slice(instructionPointer + 1));
+            instructionPointer = jumpToIndex - 1;
+          } else {
+            instructionPointer += 2;
+          }
+
+          break;
+        case Opcode.OpJump:
+          const jumpToIndex = readUint16(this.instructions.slice(instructionPointer + 1));
+          instructionPointer = jumpToIndex - 1; /* it will increment 1 in the loop */
 
           break;
         default:

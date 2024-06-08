@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { NULL } from '../../interpreter/evaluator/defaultObjects';
 import { InternalObject } from '../../interpreter/object/object';
 import { parse, testBooleanObject, testIntegerObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
@@ -13,6 +14,9 @@ describe('Test VM', () => {
         break;
       case typeof expected === 'boolean':
         testBooleanObject(actual, expected);
+        break;
+      case expected === NULL:
+        assert.strictEqual(actual, NULL);
         break;
       default:
         break;
@@ -80,7 +84,18 @@ describe('Test VM', () => {
     { input: '!(true == false)', expected: true },
     { input: '!(true != false)', expected: false },
     { input: '!(false == false)', expected: false },
-    { input: '!(false != false)', expected: true }
+    { input: '!(false != false)', expected: true },
+    { input: 'if (true) { 10 }', expected: 10 },
+    { input: 'if (true) { 10 } else { 20 }', expected: 10 },
+    { input: 'if (false) { 10 } else { 20 }', expected: 20 },
+    { input: 'if (1) { 10 }', expected: 10 },
+    { input: 'if (1 < 2) { 10 }', expected: 10 },
+    { input: 'if (1 < 2) { 10 } else { 20 }', expected: 10 },
+    { input: 'if (1 > 2) { 10 } else { 20 }', expected: 20 },
+    { input: 'if (1 > 2) { 10 }', expected: NULL },
+    { input: 'if (false) { 10 }', expected: NULL },
+    { input: '!(if (false) { 5; })', expected: true },
+    { input: 'if ((if (false) { 10 })) { 10 } else { 20 }', expected: 20 },
   ];
 
   tests.forEach(({ input, expected }) => {

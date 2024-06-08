@@ -6,8 +6,9 @@
   "tabWidth": 2,
   "semi": true,
   "bracketSpacing": true,
-  "trailingComma": "none",
+  "trailingComma": "all",
   "bracketSameLine": true,
   "arrowParens": "always",
   "endOfLine": "crlf"
 }
+

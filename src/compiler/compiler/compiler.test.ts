@@ -15,7 +15,7 @@ describe('Test Compiler', () => {
       assert.strictEqual(
         actual.length,
         expectedInstructions.length,
-        `wrong instruction length!\n expected: ${expectedInstructions.asString()}\n got: ${actual.asString()}`
+        `wrong instruction length!\n expected: ${expectedInstructions.asString()}\n got: ${actual.asString()}`,
       );
     });
 
@@ -24,7 +24,7 @@ describe('Test Compiler', () => {
         assert.strictEqual(
           actual[i],
           expectedByte,
-          `wrong byte at position ${i}: expected ${expectedByte.toString(16)}, but got ${actual[i].toString(16)}`
+          `wrong byte at position ${i}: expected ${expectedByte.toString(16)}, but got ${actual[i].toString(16)}`,
         );
       });
     });
@@ -35,7 +35,7 @@ describe('Test Compiler', () => {
       assert.strictEqual(
         actual.length,
         expected.length,
-        `wrong constant length: expected ${expected.length}, but got ${actual.length}`
+        `wrong constant length: expected ${expected.length}, but got ${actual.length}`,
       );
     });
 
@@ -76,8 +76,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpAdd),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1; 2',
@@ -86,8 +86,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpPop),
           make(Opcode.OpConstant, 1),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1 - 2',
@@ -96,8 +96,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpSub),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1 * 2',
@@ -106,8 +106,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpMul),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '2 / 1',
@@ -116,14 +116,14 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpDiv),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '-1',
         expectedConstants: [1],
-        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpMinus), make(Opcode.OpPop)]
-      }
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpMinus), make(Opcode.OpPop)],
+      },
     ];
 
     testCompiler(tests);
@@ -134,13 +134,13 @@ describe('Test Compiler', () => {
       {
         input: 'true',
         expectedConstants: [],
-        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpPop)]
+        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpPop)],
       },
       {
         input: 'false',
         expectedConstants: [],
-        expectedInstructions: [make(Opcode.OpFalse), make(Opcode.OpPop)]
-      }
+        expectedInstructions: [make(Opcode.OpFalse), make(Opcode.OpPop)],
+      },
     ];
 
     testCompiler(tests);
@@ -155,8 +155,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpGreaterThan),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1 < 2',
@@ -165,8 +165,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpGreaterThan),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1 == 2',
@@ -175,8 +175,8 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpEqual),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: '1 != 2',
@@ -185,25 +185,25 @@ describe('Test Compiler', () => {
           make(Opcode.OpConstant, 0),
           make(Opcode.OpConstant, 1),
           make(Opcode.OpNotEqual),
-          make(Opcode.OpPop)
-        ]
+          make(Opcode.OpPop),
+        ],
       },
       {
         input: 'true == false',
         expectedConstants: [],
-        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpEqual), make(Opcode.OpPop)]
+        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpEqual), make(Opcode.OpPop)],
       },
       {
         input: 'true != false',
         expectedConstants: [],
-        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpNotEqual), make(Opcode.OpPop)]
+        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpFalse), make(Opcode.OpNotEqual), make(Opcode.OpPop)],
       },
 
       {
         input: '!true',
         expectedConstants: [],
-        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpBang), make(Opcode.OpPop)]
-      }
+        expectedInstructions: [make(Opcode.OpTrue), make(Opcode.OpBang), make(Opcode.OpPop)],
+      },
     ];
 
     testCompiler(tests);
@@ -216,15 +216,32 @@ describe('Test Compiler', () => {
         expectedConstants: [10, 3333],
         expectedInstructions: [
           make(Opcode.OpTrue), // 0000
-          make(Opcode.OpJumpNotTruthy, 7), // 0001
+          make(Opcode.OpJumpNotTruthy, 10), // 0001
           make(Opcode.OpConstant, 0), // 0004
-          make(Opcode.OpPop), // 0007
-          make(Opcode.OpConstant, 1), // 0008
-          make(Opcode.OpPop) // 0011
-        ]
-      }
+          make(Opcode.OpJump, 11), // 0007
+          make(Opcode.OpNull), // 0010
+          make(Opcode.OpPop), // 0011
+          make(Opcode.OpConstant, 1), // 0012
+          make(Opcode.OpPop), // 0015
+        ],
+      },
+      {
+        input: 'if (true) { 10 } else { 20 }; 3333;',
+        expectedConstants: [10, 20, 3333],
+        expectedInstructions: [
+          make(Opcode.OpTrue), // 0000
+          make(Opcode.OpJumpNotTruthy, 10), // 0001
+          make(Opcode.OpConstant, 0), // 0004
+          make(Opcode.OpJump, 13), // 0007
+          make(Opcode.OpConstant, 1), // 0010
+          make(Opcode.OpPop), // 0013
+          make(Opcode.OpConstant, 2), // 0014
+          make(Opcode.OpPop), // 0017
+        ],
+      },
     ];
 
     testCompiler(tests);
   });
 });
+

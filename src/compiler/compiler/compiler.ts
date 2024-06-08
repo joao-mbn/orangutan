@@ -7,7 +7,7 @@ import {
   InfixExpression,
   IntegerLiteral,
   PrefixExpression,
-  Program
+  Program,
 } from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
@@ -121,7 +121,7 @@ export class Compiler {
         }
 
         // Create jump to with bogus value to be corrected once we compile the consequence and know its length. Bogus value inserted for clarity, not really needed.
-        const opJumpPosition = this.emit(Opcode.OpJumpNotTruthy, 9999);
+        const opJumpNotTruthyPosition = this.emit(Opcode.OpJumpNotTruthy, 9999);
 
         error = this.compile(node.consequence);
         if (error) {
@@ -132,9 +132,27 @@ export class Compiler {
           this.removeLastPop();
         }
 
-        /* The jump position is the one just after the last instruction after the consequence */
-        const lastPosition = this.instructions.length;
-        this.changeOperand(opJumpPosition, lastPosition);
+        /* The jump instruction goes right after the last instruction in the consequence block, if there's an alternative. */
+        const opJumpPosition = this.emit(Opcode.OpJump, 9999);
+
+        /* The jump-not-truthy position is the one just after the last instruction after the consequence */
+        this.changeOperand(opJumpNotTruthyPosition, this.instructions.length);
+
+        if (node.alternative) {
+          error = this.compile(node.alternative);
+          if (error) {
+            return error;
+          }
+
+          if (this.lastInstructionIsPop()) {
+            this.removeLastPop();
+          }
+        } else {
+          this.emit(Opcode.OpNull);
+        }
+
+        /* The jump position is the one just after the last instruction after the alternative */
+        this.changeOperand(opJumpPosition, this.instructions.length);
 
         break;
       default:
@@ -209,3 +227,4 @@ type EmittedInstruction = {
   opcode: Opcode;
   position: number;
 };
+
