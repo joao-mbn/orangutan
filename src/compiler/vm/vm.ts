@@ -5,16 +5,24 @@ import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 
 const STACK_SIZE = 2048;
+const GLOBALS_SIZE = 0xffff; /* OpGetGlobal/OpSetGlobal operand is 16-bits wide */
+const CONSTANTS_SIZE = 0xffff; /* OpConstant operand is 16-bits wide */
 
 export class VM {
   constants: InternalObject[];
+  globals: InternalObject[];
   instructions: Instructions;
   stack: InternalObject[];
   stackPointer: number; // points to the next empty slot
 
-  constructor(bytecode: Bytecode) {
-    this.constants = bytecode.constants;
+  constructor(bytecode: Bytecode, globals: InternalObject[] = new Array(GLOBALS_SIZE).fill(null)) {
     this.instructions = bytecode.instructions;
+
+    this.constants = [...bytecode.constants, ...new Array(CONSTANTS_SIZE - bytecode.constants.length).fill(null)];
+    Object.seal(this.constants);
+
+    this.globals = globals;
+    Object.seal(this.globals);
 
     this.stack = new Array(STACK_SIZE).fill(null);
     Object.seal(this.stack);
@@ -33,98 +41,58 @@ export class VM {
   run() {
     for (let instructionPointer = 0; instructionPointer < this.instructions.length; instructionPointer++) {
       const opcode = this.instructions[instructionPointer];
-      let error: Error | null = null;
       switch (opcode) {
         case Opcode.OpConstant:
           const constIndex = readUint16(this.instructions.slice(instructionPointer + 1));
           instructionPointer += 2;
 
           const constant = this.constants[constIndex];
-          error = this.push(constant);
-          if (error) {
-            return error;
-          }
+          this.push(constant);
 
           break;
         case Opcode.OpAdd:
         case Opcode.OpSub:
         case Opcode.OpMul:
         case Opcode.OpDiv:
-          error = this.executeBinaryOperation(opcode);
-          if (error instanceof Error) {
-            return error;
-          }
-
+          this.executeBinaryOperation(opcode);
           break;
         case Opcode.OpPop:
-          const opPopError = this.pop();
-          if (opPopError instanceof Error) {
-            return opPopError;
-          }
-
+          this.pop();
           break;
         case Opcode.OpTrue:
-          error = this.push(TRUE_OBJECT);
-          if (error) {
-            return error;
-          }
+          this.push(TRUE_OBJECT);
           break;
         case Opcode.OpFalse:
-          error = this.push(FALSE_OBJECT);
-          if (error) {
-            return error;
-          }
+          this.push(FALSE_OBJECT);
           break;
         case Opcode.OpNull:
-          error = this.push(NULL);
-          if (error) {
-            return error;
-          }
+          this.push(NULL);
           break;
         case Opcode.OpEqual:
         case Opcode.OpNotEqual:
         case Opcode.OpGreaterThan:
-          error = this.executeComparison(opcode);
-          if (error instanceof Error) {
-            return error;
-          }
+          this.executeComparison(opcode);
 
           break;
         case Opcode.OpMinus:
           const top = this.pop();
-          if (top instanceof Error) {
-            return top;
-          }
 
           if (!(top instanceof IntegerObject)) {
-            return new Error(`unsupported type for negation: ${top.objectType()}`);
+            throw new Error(`unsupported type for negation: ${top.objectType()}`);
           }
 
-          error = this.push(new IntegerObject(-top.value));
-          if (error) {
-            return error;
-          }
+          this.push(new IntegerObject(-top.value));
 
           break;
         case Opcode.OpBang:
           const operand = this.pop();
-          if (operand instanceof Error) {
-            return operand;
-          }
 
           const negated = isTruthy(operand) ? FALSE_OBJECT : TRUE_OBJECT;
-          error = this.push(negated);
-
-          if (error) {
-            return error;
-          }
+          this.push(negated);
 
           break;
         case Opcode.OpJumpNotTruthy:
           const condition = this.pop();
-          if (condition instanceof Error) {
-            return condition;
-          }
 
           if (!isTruthy(condition)) {
             const jumpToIndex = readUint16(this.instructions.slice(instructionPointer + 1));
@@ -139,8 +107,24 @@ export class VM {
           instructionPointer = jumpToIndex - 1; /* it will increment 1 in the loop */
 
           break;
+        case Opcode.OpSetGlobal:
+          const globalSetIndex = readUint16(this.instructions.slice(instructionPointer + 1));
+          instructionPointer += 2;
+
+          this.globals[globalSetIndex] = this.pop();
+
+          break;
+        case Opcode.OpGetGlobal:
+          const globalGetIndex = readUint16(this.instructions.slice(instructionPointer + 1));
+          instructionPointer += 2;
+
+          const global = this.globals[globalGetIndex];
+
+          this.push(global);
+
+          break;
         default:
-          return new Error(`unknown opcode: ${opcode}`);
+          throw new Error(`unknown opcode: ${opcode}`);
       }
     }
 
@@ -149,7 +133,7 @@ export class VM {
 
   push(object: InternalObject) {
     if (this.stackPointer >= STACK_SIZE) {
-      return new Error('stack overflow');
+      throw new Error('stack overflow');
     }
 
     this.stack[this.stackPointer] = object;
@@ -160,7 +144,7 @@ export class VM {
 
   pop() {
     if (this.stackPointer === 0) {
-      return new Error('stack underflow');
+      throw new Error('stack underflow');
     }
 
     const popped = this.stack[this.stackPointer - 1];
@@ -177,16 +161,10 @@ export class VM {
 
   executeBinaryOperation(opcode: Opcode) {
     const right = this.pop();
-    if (right instanceof Error) {
-      return right;
-    }
     const left = this.pop();
-    if (left instanceof Error) {
-      return left;
-    }
 
     if (left.objectType() !== right.objectType()) {
-      return new Error(`type mismatch: ${left.objectType()} + ${right.objectType()}`);
+      throw new Error(`type mismatch: ${left.objectType()} + ${right.objectType()}`);
     }
 
     if (left instanceof IntegerObject && right instanceof IntegerObject) {
@@ -200,25 +178,19 @@ export class VM {
         case Opcode.OpDiv:
           return this.push(new IntegerObject(left.value / right.value));
         default:
-          return new Error(`operation ${opcode} unsupported for integer literals`);
+          throw new Error(`operation ${opcode} unsupported for integer literals`);
       }
     } else {
-      return new Error(`operation unsupported for ${left.objectType()} and ${right.objectType()}`);
+      throw new Error(`operation unsupported for ${left.objectType()} and ${right.objectType()}`);
     }
   }
 
   executeComparison(opcode: Opcode) {
     const right = this.pop();
-    if (right instanceof Error) {
-      return right;
-    }
     const left = this.pop();
-    if (left instanceof Error) {
-      return left;
-    }
 
     if (left.objectType() !== right.objectType()) {
-      return new Error(`type mismatch: ${left.objectType()} + ${right.objectType()}`);
+      throw new Error(`type mismatch: ${left.objectType()} + ${right.objectType()}`);
     }
 
     if (left instanceof IntegerObject && right instanceof IntegerObject) {
@@ -233,7 +205,7 @@ export class VM {
       case Opcode.OpGreaterThan:
         return this.push(nativeBooleanToBooleanObject(left > right));
       default:
-        return new Error(`operation ${opcode} unsupported for ${left.objectType()} and ${right.objectType()}`);
+        throw new Error(`operation ${opcode} unsupported for ${left.objectType()} and ${right.objectType()}`);
     }
   }
 
@@ -246,7 +218,7 @@ export class VM {
       case Opcode.OpGreaterThan:
         return this.push(nativeBooleanToBooleanObject(left.value > right.value));
       default:
-        return new Error(`operation ${opcode} unsupported for integer literals`);
+        throw new Error(`operation ${opcode} unsupported for integer literals`);
     }
   }
 }

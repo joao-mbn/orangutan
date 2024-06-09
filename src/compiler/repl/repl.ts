@@ -1,9 +1,15 @@
 import { Lexer } from '../../interpreter/lexer/lexer';
+import { InternalObject } from '../../interpreter/object/object';
 import { Parser } from '../../interpreter/parser/parser';
 import { Compiler } from '../compiler/compiler';
+import { SymbolTable } from '../compiler/symbolTable';
 import { VM } from '../vm/vm';
 
 export function start() {
+  const constants: InternalObject[] = [];
+  const globals: InternalObject[] = new Array(0xffff).fill(null);
+  const symbolTable = new SymbolTable();
+
   // reads user input from the command line
   process.stdout.write('>> ');
   process.stdin.on('data', function (data) {
@@ -24,14 +30,14 @@ export function start() {
         parser.errors.forEach((error) => console.error(`\t${error}\n`));
         console.error('Parser error');
       } else {
-        const compiler = new Compiler();
+        const compiler = new Compiler(symbolTable, constants);
         const compileError = compiler.compile(program);
         if (compileError) {
           console.error('Compiler error');
         }
 
         const bytecode = compiler.bytecode();
-        const vm = new VM(bytecode);
+        const vm = new VM(bytecode, globals);
 
         const runtimeError = vm.run();
         if (runtimeError) {

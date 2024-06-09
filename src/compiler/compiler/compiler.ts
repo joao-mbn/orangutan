@@ -3,24 +3,29 @@ import {
   BlockStatement,
   BooleanLiteral,
   ExpressionStatement,
+  Identifier,
   IfExpression,
   InfixExpression,
   IntegerLiteral,
+  LetStatement,
   PrefixExpression,
   Program,
 } from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
+import { SymbolTable } from './symbolTable';
 
 export class Compiler {
   instructions: Instructions;
   constants: InternalObject[];
+  symbols: SymbolTable;
   lastInstruction: EmittedInstruction;
   previousInstruction: EmittedInstruction;
 
-  constructor() {
+  constructor(symbols: SymbolTable = new SymbolTable(), constants: InternalObject[] = []) {
     this.instructions = new Instructions(0);
-    this.constants = [];
+    this.constants = constants;
+    this.symbols = symbols;
 
     /* bogus values */
     this.lastInstruction = { opcode: Opcode.OpConstant, position: -1 };
@@ -28,36 +33,24 @@ export class Compiler {
   }
 
   compile(node: AstNode): Error | null {
-    let error: Error | null = null;
     switch (true) {
       case node instanceof Program:
       case node instanceof BlockStatement:
         for (const statement of node.statements) {
-          error = this.compile(statement);
-          if (error) {
-            return error;
-          }
+          this.compile(statement);
         }
         break;
       case node instanceof ExpressionStatement:
-        error = this.compile(node.expression);
-        if (error) {
-          return error;
-        }
+        this.compile(node.expression);
+
         this.emit(Opcode.OpPop);
         break;
       case node instanceof InfixExpression:
         const shouldInvert = node.operator === '<';
 
-        error = this.compile(shouldInvert ? node.right : node.left);
-        if (error) {
-          return error;
-        }
+        this.compile(shouldInvert ? node.right : node.left);
 
-        error = this.compile(shouldInvert ? node.left : node.right);
-        if (error) {
-          return error;
-        }
+        this.compile(shouldInvert ? node.left : node.right);
 
         switch (node.operator) {
           case '+':
@@ -83,14 +76,11 @@ export class Compiler {
             this.emit(Opcode.OpGreaterThan);
             break;
           default:
-            return new Error(`Unknown operator ${node.operator}`);
+            throw new Error(`Unknown operator ${node.operator}`);
         }
         break;
       case node instanceof PrefixExpression:
-        error = this.compile(node.right);
-        if (error) {
-          return error;
-        }
+        this.compile(node.right);
 
         switch (node.operator) {
           case '!':
@@ -100,7 +90,7 @@ export class Compiler {
             this.emit(Opcode.OpMinus);
             break;
           default:
-            return new Error(`Unknown operator ${node.operator}`);
+            throw new Error(`Unknown operator ${node.operator}`);
         }
         break;
       case node instanceof IntegerLiteral:
@@ -115,18 +105,12 @@ export class Compiler {
         }
         break;
       case node instanceof IfExpression:
-        error = this.compile(node.condition);
-        if (error) {
-          return error;
-        }
+        this.compile(node.condition);
 
         // Create jump to with bogus value to be corrected once we compile the consequence and know its length. Bogus value inserted for clarity, not really needed.
         const opJumpNotTruthyPosition = this.emit(Opcode.OpJumpNotTruthy, 9999);
 
-        error = this.compile(node.consequence);
-        if (error) {
-          return error;
-        }
+        this.compile(node.consequence);
 
         if (this.lastInstructionIsPop()) {
           this.removeLastPop();
@@ -139,10 +123,7 @@ export class Compiler {
         this.changeOperand(opJumpNotTruthyPosition, this.instructions.length);
 
         if (node.alternative) {
-          error = this.compile(node.alternative);
-          if (error) {
-            return error;
-          }
+          this.compile(node.alternative);
 
           if (this.lastInstructionIsPop()) {
             this.removeLastPop();
@@ -154,6 +135,19 @@ export class Compiler {
         /* The jump position is the one just after the last instruction after the alternative */
         this.changeOperand(opJumpPosition, this.instructions.length);
 
+        break;
+      case node instanceof Identifier:
+        const symbol = this.symbols.resolve(node.value);
+        if (!symbol) {
+          throw new Error(`Identifier not found: ${node.value}`);
+        }
+        this.emit(Opcode.OpGetGlobal, symbol.index);
+        break;
+      case node instanceof LetStatement:
+        this.compile(node.value);
+
+        const identifierIndex = this.symbols.define(node.name.value).index;
+        this.emit(Opcode.OpSetGlobal, identifierIndex);
         break;
       default:
         throw new Error('Not implemented');

@@ -17,6 +17,8 @@ export enum Opcode {
   OpJumpNotTruthy = 13,
   OpJump = 14,
   OpNull = 15,
+  OpGetGlobal = 16,
+  OpSetGlobal = 17,
 }
 
 export interface Definition {
@@ -41,6 +43,8 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpJumpNotTruthy]: { name: 'OpJumpNotTruthy', operandWidths: [2] },
   [Opcode.OpJump]: { name: 'OpJump', operandWidths: [2] },
   [Opcode.OpNull]: { name: 'OpNull', operandWidths: [] },
+  [Opcode.OpGetGlobal]: { name: 'OpGetGlobal', operandWidths: [2] },
+  [Opcode.OpSetGlobal]: { name: 'OpSetGlobal', operandWidths: [2] },
 };
 
 export class Instructions extends Uint8Array {

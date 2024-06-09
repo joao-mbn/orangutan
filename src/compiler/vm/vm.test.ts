@@ -96,6 +96,9 @@ describe('Test VM', () => {
     { input: 'if (false) { 10 }', expected: NULL },
     { input: '!(if (false) { 5; })', expected: true },
     { input: 'if ((if (false) { 10 })) { 10 } else { 20 }', expected: 20 },
+    // { input: 'let one = 1; one', expected: 1 },
+    // { input: 'let one = 1; let two = 2; one + two', expected: 3 },
+    // { input: 'let one = 1; let two = one + one; one + two', expected: 3 },
   ];
 
   tests.forEach(({ input, expected }) => {

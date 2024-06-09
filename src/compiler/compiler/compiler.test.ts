@@ -243,5 +243,58 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test global let statements', () => {
+    const tests: TestCases = [
+      {
+        input: 'let one = 1; let two = 2;',
+        expectedConstants: [1, 2],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpSetGlobal, 0), // 0003
+          make(Opcode.OpConstant, 1), // 0006
+          make(Opcode.OpSetGlobal, 1), // 0009
+        ],
+      },
+      {
+        input: 'let one = 1; one;',
+        expectedConstants: [1],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpSetGlobal, 0), // 0003
+          make(Opcode.OpGetGlobal, 0), // 0006
+          make(Opcode.OpPop), // 0009
+        ],
+      },
+      {
+        input: 'let one = 1; let two = one; two;',
+        expectedConstants: [1],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpSetGlobal, 0), // 0003
+          make(Opcode.OpGetGlobal, 0), // 0006
+          make(Opcode.OpSetGlobal, 1), // 0009
+          make(Opcode.OpGetGlobal, 1), // 0012
+          make(Opcode.OpPop), // 0015
+        ],
+      },
+      {
+        input: 'let x = 33; let y = 66; let z = x + y;',
+        expectedConstants: [33, 66],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpSetGlobal, 0), // 0003
+          make(Opcode.OpConstant, 1), // 0006
+          make(Opcode.OpSetGlobal, 1), // 0009
+          make(Opcode.OpGetGlobal, 0), // 0012
+          make(Opcode.OpGetGlobal, 1), // 0015
+          make(Opcode.OpAdd), // 0018
+          make(Opcode.OpSetGlobal, 2), // 0019
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });
 
