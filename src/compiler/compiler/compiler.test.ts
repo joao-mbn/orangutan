@@ -361,5 +361,51 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test hash literals', () => {
+    const tests: TestCases = [
+      {
+        input: '{}',
+        expectedConstants: [],
+        expectedInstructions: [make(Opcode.OpHash, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: '{1: 2, 2: 3, 3: 4}',
+        expectedConstants: [1, 2, 2, 3, 3, 4],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpConstant, 2), // 0006
+          make(Opcode.OpConstant, 3), // 0009
+          make(Opcode.OpConstant, 4), // 0012
+          make(Opcode.OpConstant, 5), // 0015
+          make(Opcode.OpHash, 6), // 0018
+          make(Opcode.OpPop), // 0021
+        ],
+      },
+      {
+        input: '{1 + 10: 2 * 20, 3 + 30: 4 * 40}',
+        expectedConstants: [1, 10, 2, 20, 3, 30, 4, 40],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpAdd), // 0006
+          make(Opcode.OpConstant, 2), // 0007
+          make(Opcode.OpConstant, 3), // 0010
+          make(Opcode.OpMul), // 0013
+          make(Opcode.OpConstant, 4), // 0014
+          make(Opcode.OpConstant, 5), // 0017
+          make(Opcode.OpAdd), // 0020
+          make(Opcode.OpConstant, 6), // 0021
+          make(Opcode.OpConstant, 7), // 0024
+          make(Opcode.OpMul), // 0027
+          make(Opcode.OpHash, 4), // 0028
+          make(Opcode.OpPop), // 0031
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });
 

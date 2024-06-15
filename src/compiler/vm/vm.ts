@@ -1,6 +1,13 @@
 import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
 import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
-import { ArrayObject, IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
+import {
+  ArrayObject,
+  HashObject,
+  Hashable,
+  IntegerObject,
+  InternalObject,
+  StringObject,
+} from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 
@@ -131,6 +138,30 @@ export class VM {
           this.stackPointer -= size;
 
           this.push(array);
+
+          break;
+        case Opcode.OpHash:
+          const sizeHash = readUint16(this.instructions.slice(instructionPointer + 1));
+          instructionPointer += 2;
+
+          const elements = this.stack.slice(this.stackPointer - sizeHash, this.stackPointer);
+          this.stackPointer -= sizeHash;
+
+          const hash = new Map<number, { key: InternalObject; value: InternalObject }>();
+          for (let i = 0; i < elements.length; i += 2) {
+            const key = elements[i];
+            if (!(key instanceof Hashable)) {
+              throw new Error(`unusable as hash key: ${key.objectType()}`);
+            }
+
+            const hashKey = key.hashKey();
+
+            const value = elements[i + 1];
+
+            hash.set(hashKey, { key, value });
+          }
+
+          this.push(new HashObject(hash));
 
           break;
         default:

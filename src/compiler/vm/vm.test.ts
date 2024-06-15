@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { NULL } from '../../interpreter/evaluator/defaultObjects';
-import { ArrayObject, InternalObject } from '../../interpreter/object/object';
+import { ArrayObject, HashObject, IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { parse, testArrayObject, testBooleanObject, testIntegerObject, testStringObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
 import { VM } from './vm';
@@ -25,6 +25,24 @@ describe('Test VM', () => {
         testArrayObject(actual, expected);
         expected.forEach((element, index) => {
           testExpectedObject(element, (actual as ArrayObject).elements[index]);
+        });
+        break;
+      case typeof expected === 'object' && expected !== null:
+        it('should be a HashObject', () => {
+          assert.ok(actual instanceof HashObject);
+        });
+
+        it('should have the same number of pairs', () => {
+          assert.strictEqual((actual as HashObject).pairs.size, Object.keys(expected).length);
+        });
+
+        Object.entries(expected).forEach(([hashKey, value]) => {
+          const pair = (actual as HashObject).pairs.get(Number(hashKey));
+          it(`should have a pair`, () => {
+            assert.notStrictEqual(pair, undefined);
+          });
+
+          testExpectedObject(value, pair!.value);
         });
         break;
 
@@ -114,6 +132,13 @@ describe('Test VM', () => {
     { input: '[]', expected: [] },
     { input: '[1, 2, 3]', expected: [1, 2, 3] },
     { input: '[1 + 2, 2 * 3, 3 + 8]', expected: [3, 6, 11] },
+    { input: '{}', expected: {} },
+    { input: '{1: 2}', expected: { [new IntegerObject(1).hashKey()]: 2 } },
+    { input: '{1: 2, 2: 3}', expected: { [new IntegerObject(1).hashKey()]: 2, [new IntegerObject(2).hashKey()]: 3 } },
+    {
+      input: '{1 + 1: 2 * 2, 3 + 3: 4 * 4}',
+      expected: { [new IntegerObject(2).hashKey()]: 4, [new IntegerObject(6).hashKey()]: 16 },
+    },
   ];
 
   tests.forEach(({ input, expected }) => {
@@ -127,10 +152,6 @@ describe('Test VM', () => {
 
     const bytecode = compiler.bytecode();
     const vm = new VM(bytecode);
-
-    if (input === '[]') {
-      debugger;
-    }
 
     const runtimeError = vm.run();
     it('should not throw an error', () => {

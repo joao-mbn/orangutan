@@ -3,7 +3,9 @@ import {
   AstNode,
   BlockStatement,
   BooleanLiteral,
+  Expression,
   ExpressionStatement,
+  HashLiteral,
   Identifier,
   IfExpression,
   InfixExpression,
@@ -161,6 +163,24 @@ export class Compiler {
         }
 
         this.emit(Opcode.OpArray, node.elements.length);
+        break;
+      case node instanceof HashLiteral:
+        const pairs: [Expression, Expression][] = [];
+        const entries = node.pairs.entries();
+
+        for (const [key, value] of entries) {
+          pairs.push([key, value]);
+        }
+
+        /* The sorting is just needed for testing purposes */
+        pairs.sort((a, b) => a[0].asString().localeCompare(b[0].asString()));
+
+        for (const [key, value] of pairs) {
+          this.compile(key);
+          this.compile(value);
+        }
+
+        this.emit(Opcode.OpHash, node.pairs.size * 2);
         break;
       default:
         throw new Error('Not implemented');

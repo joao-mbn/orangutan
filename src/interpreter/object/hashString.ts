@@ -4,5 +4,7 @@ export function hashString(value: string): number {
     hash = (hash << 5) - hash + value.charCodeAt(i);
     hash |= 0;
   }
+
   return hash;
 }
+
