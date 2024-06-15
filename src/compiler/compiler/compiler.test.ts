@@ -407,5 +407,54 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test index expressions', () => {
+    const tests: TestCases = [
+      {
+        input: '[1, 2, 3][1]',
+        expectedConstants: [1, 2, 3, 1],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpConstant, 2), // 0006
+          make(Opcode.OpArray, 3), // 0009
+          make(Opcode.OpConstant, 3), // 0012
+          make(Opcode.OpIndex), // 0015
+          make(Opcode.OpPop), // 0016
+        ],
+      },
+      {
+        input: '[1, 2, 3][1 + 1]',
+        expectedConstants: [1, 2, 3, 1, 1],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpConstant, 2), // 0006
+          make(Opcode.OpArray, 3), // 0009
+          make(Opcode.OpConstant, 3), // 0012
+          make(Opcode.OpConstant, 4), // 0015
+          make(Opcode.OpAdd), // 0018
+          make(Opcode.OpIndex), // 0019
+          make(Opcode.OpPop), // 0020
+        ],
+      },
+      {
+        input: '{1: 2}[1 - 1]',
+        expectedConstants: [1, 2, 1, 1],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpHash, 2), // 0006
+          make(Opcode.OpConstant, 2), // 0009
+          make(Opcode.OpConstant, 3), // 0012
+          make(Opcode.OpSub), // 0015
+          make(Opcode.OpIndex), // 0016
+          make(Opcode.OpPop), // 0017
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });
 

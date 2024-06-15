@@ -139,6 +139,15 @@ describe('Test VM', () => {
       input: '{1 + 1: 2 * 2, 3 + 3: 4 * 4}',
       expected: { [new IntegerObject(2).hashKey()]: 4, [new IntegerObject(6).hashKey()]: 16 },
     },
+    { input: '[1, 2, 3][0]', expected: 1 },
+    { input: '{1: 2, 3: 4, 5: 6}[5]', expected: 6 },
+    { input: '[1, 2, 3][3]', expected: NULL },
+    { input: '{1: 2}["test"]', expected: NULL },
+    { input: '{1: 2}[-1]', expected: NULL },
+    { input: '{"one": 1, "two": 2}["o" + "ne"]', expected: 1 },
+    { input: '[[1, 1, 1]][0][0]', expected: 1 },
+    { input: '[][0]', expected: NULL },
+    { input: '{}[0]', expected: NULL },
   ];
 
   tests.forEach(({ input, expected }) => {

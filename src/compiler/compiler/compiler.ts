@@ -8,6 +8,7 @@ import {
   HashLiteral,
   Identifier,
   IfExpression,
+  IndexExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -181,6 +182,12 @@ export class Compiler {
         }
 
         this.emit(Opcode.OpHash, node.pairs.size * 2);
+        break;
+      case node instanceof IndexExpression:
+        this.compile(node.left);
+        this.compile(node.index);
+
+        this.emit(Opcode.OpIndex);
         break;
       default:
         throw new Error('Not implemented');

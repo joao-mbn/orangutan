@@ -164,6 +164,32 @@ export class VM {
           this.push(new HashObject(hash));
 
           break;
+        case Opcode.OpIndex:
+          const index = this.pop();
+          const left = this.pop();
+
+          if (left instanceof ArrayObject && index instanceof IntegerObject) {
+            const i = index.value;
+            const max = left.elements.length - 1;
+
+            if (i < 0 || i > max) {
+              this.push(NULL);
+            } else {
+              const result = left.elements[index.value];
+              this.push(result);
+            }
+          } else if (left instanceof HashObject && index instanceof Hashable) {
+            const pair = left.pairs.get(index.hashKey());
+            if (!pair) {
+              this.push(NULL);
+            } else {
+              this.push(pair.value);
+            }
+          } else {
+            throw new Error(`index operator ${index.objectType()} not supported for: ${left.objectType()}`);
+          }
+
+          break;
         default:
           throw new Error(`unknown opcode: ${opcode}`);
       }
