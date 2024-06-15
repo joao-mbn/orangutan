@@ -321,5 +321,45 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test arrays', () => {
+    const tests: TestCases = [
+      {
+        input: '[]',
+        expectedConstants: [],
+        expectedInstructions: [make(Opcode.OpArray, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: '[1, 2, 3]',
+        expectedConstants: [1, 2, 3],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0),
+          make(Opcode.OpConstant, 1),
+          make(Opcode.OpConstant, 2),
+          make(Opcode.OpArray, 3),
+          make(Opcode.OpPop),
+        ],
+      },
+      {
+        input: '[1 + 2, 3 - 4, 5 * 6]',
+        expectedConstants: [1, 2, 3, 4, 5, 6],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0), // 0000
+          make(Opcode.OpConstant, 1), // 0003
+          make(Opcode.OpAdd), // 0006
+          make(Opcode.OpConstant, 2), // 0007
+          make(Opcode.OpConstant, 3), // 0010
+          make(Opcode.OpSub), // 0013
+          make(Opcode.OpConstant, 4), // 0014
+          make(Opcode.OpConstant, 5), // 0017
+          make(Opcode.OpMul), // 0020
+          make(Opcode.OpArray, 3), // 0021
+          make(Opcode.OpPop), // 0024
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });
 

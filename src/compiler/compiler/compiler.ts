@@ -1,4 +1,5 @@
 import {
+  ArrayLiteral,
   AstNode,
   BlockStatement,
   BooleanLiteral,
@@ -153,6 +154,13 @@ export class Compiler {
 
         const identifierIndex = this.symbols.define(node.name.value).index;
         this.emit(Opcode.OpSetGlobal, identifierIndex);
+        break;
+      case node instanceof ArrayLiteral:
+        for (const element of node.elements) {
+          this.compile(element);
+        }
+
+        this.emit(Opcode.OpArray, node.elements.length);
         break;
       default:
         throw new Error('Not implemented');

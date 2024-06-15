@@ -19,6 +19,7 @@ export enum Opcode {
   OpNull = 15,
   OpGetGlobal = 16,
   OpSetGlobal = 17,
+  OpArray = 18,
 }
 
 export interface Definition {
@@ -45,6 +46,7 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpNull]: { name: 'OpNull', operandWidths: [] },
   [Opcode.OpGetGlobal]: { name: 'OpGetGlobal', operandWidths: [2] },
   [Opcode.OpSetGlobal]: { name: 'OpSetGlobal', operandWidths: [2] },
+  [Opcode.OpArray]: { name: 'OpArray', operandWidths: [2] },
 };
 
 export class Instructions extends Uint8Array {

@@ -1,6 +1,6 @@
 import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
 import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
-import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
+import { ArrayObject, IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 
@@ -121,6 +121,16 @@ export class VM {
           const global = this.globals[globalGetIndex];
 
           this.push(global);
+
+          break;
+        case Opcode.OpArray:
+          const size = readUint16(this.instructions.slice(instructionPointer + 1));
+          instructionPointer += 2;
+
+          const array = new ArrayObject(this.stack.slice(this.stackPointer - size, this.stackPointer));
+          this.stackPointer -= size;
+
+          this.push(array);
 
           break;
         default:

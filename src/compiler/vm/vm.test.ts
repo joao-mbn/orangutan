@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { NULL } from '../../interpreter/evaluator/defaultObjects';
-import { InternalObject } from '../../interpreter/object/object';
-import { parse, testBooleanObject, testIntegerObject, testStringObject } from '../../testTools';
+import { ArrayObject, InternalObject } from '../../interpreter/object/object';
+import { parse, testArrayObject, testBooleanObject, testIntegerObject, testStringObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
 import { VM } from './vm';
 
@@ -21,6 +21,13 @@ describe('Test VM', () => {
       case expected === NULL:
         assert.strictEqual(actual, NULL);
         break;
+      case Array.isArray(expected):
+        testArrayObject(actual, expected);
+        expected.forEach((element, index) => {
+          testExpectedObject(element, (actual as ArrayObject).elements[index]);
+        });
+        break;
+
       default:
         break;
     }
@@ -104,6 +111,9 @@ describe('Test VM', () => {
     { input: 'let one = 1; let two = one + one; one + two', expected: 3 },
     { input: '"monkey"', expected: 'monkey' },
     { input: '"mon" + "key"', expected: 'monkey' },
+    { input: '[]', expected: [] },
+    { input: '[1, 2, 3]', expected: [1, 2, 3] },
+    { input: '[1 + 2, 2 * 3, 3 + 8]', expected: [3, 6, 11] },
   ];
 
   tests.forEach(({ input, expected }) => {
@@ -117,6 +127,10 @@ describe('Test VM', () => {
 
     const bytecode = compiler.bytecode();
     const vm = new VM(bytecode);
+
+    if (input === '[]') {
+      debugger;
+    }
 
     const runtimeError = vm.run();
     it('should not throw an error', () => {

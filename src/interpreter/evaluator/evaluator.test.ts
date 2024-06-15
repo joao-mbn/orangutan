@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   getProgramAndParser,
+  testArrayObject,
   testBooleanObject,
   testIntegerObject,
   testNullObject,
@@ -305,13 +306,7 @@ describe('Evaluator', () => {
     const input = '[1, 2 * 2, 3 + 3]';
     const evaluated = testEvaluator(input) as ArrayObject;
 
-    it('object is ArrayObject', () => {
-      assert.ok(evaluated instanceof ArrayObject);
-    });
-
-    it('should have the expected number of elements', () => {
-      assert.strictEqual(evaluated.elements.length, 3);
-    });
+    testArrayObject(evaluated, [1, 4, 6]);
 
     testIntegerObject(evaluated.elements[0], 1);
     testIntegerObject(evaluated.elements[1], 4);

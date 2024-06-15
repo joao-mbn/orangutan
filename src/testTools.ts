@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { it } from 'node:test';
 import { NULL } from './interpreter/evaluator/defaultObjects';
 import { Lexer } from './interpreter/lexer/lexer';
-import { BooleanObject, IntegerObject, InternalObject, StringObject } from './interpreter/object/object';
+import { ArrayObject, BooleanObject, IntegerObject, InternalObject, StringObject } from './interpreter/object/object';
 import { Parser } from './interpreter/parser/parser';
 
 export function getProgramAndParser(input: string) {
@@ -55,6 +55,16 @@ export function testStringObject(object: InternalObject, expected: string) {
 
   it(`should evaluate to ${expected}`, () => {
     assert.strictEqual(object.inspect(), expected);
+  });
+}
+
+export function testArrayObject(object: InternalObject, expected: unknown[]) {
+  it('object is ArrayObject', () => {
+    assert.ok(object instanceof ArrayObject);
+  });
+
+  it(`should have the expected number of elements`, () => {
+    assert.deepStrictEqual((object as ArrayObject).elements.length, expected.length);
   });
 }
 
