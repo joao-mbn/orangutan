@@ -10,8 +10,9 @@ import {
   LetStatement,
   PrefixExpression,
   Program,
+  StringLiteral,
 } from '../../interpreter/ast/ast';
-import { IntegerObject, InternalObject } from '../../interpreter/object/object';
+import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { SymbolTable } from './symbolTable';
 
@@ -103,6 +104,10 @@ export class Compiler {
         } else {
           this.emit(Opcode.OpFalse);
         }
+        break;
+      case node instanceof StringLiteral:
+        const string = new StringObject(node.token.literal);
+        this.emit(Opcode.OpConstant, this.addConstant(string));
         break;
       case node instanceof IfExpression:
         this.compile(node.condition);

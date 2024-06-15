@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { getProgramAndParser, testBooleanObject, testIntegerObject, testNullObject } from '../../testTools';
+import {
+  getProgramAndParser,
+  testBooleanObject,
+  testIntegerObject,
+  testNullObject,
+  testStringObject,
+} from '../../testTools';
 import { Environment } from '../object/environment';
 import { ArrayObject, ErrorObject, FunctionObject, HashObject, IntegerObject, StringObject } from '../object/object';
 import { FALSE_OBJECT, TRUE_OBJECT } from './defaultObjects';
@@ -35,7 +41,7 @@ describe('Evaluator', () => {
       { input: '2 * (5 + 10)', expected: 30 },
       { input: '3 * 3 * 3 + 10', expected: 37 },
       { input: '3 * (3 * 3) + 10', expected: 37 },
-      { input: '(5 + 10 * 2 + 15 / 3) * 2 + -10', expected: 50 }
+      { input: '(5 + 10 * 2 + 15 / 3) * 2 + -10', expected: 50 },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -77,7 +83,7 @@ describe('Evaluator', () => {
       { input: '!true && true', expected: false },
       { input: '!(false && false)', expected: true },
       { input: '5 && "hello"', expected: true },
-      { input: '5 || "hello"', expected: true }
+      { input: '5 || "hello"', expected: true },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -94,7 +100,7 @@ describe('Evaluator', () => {
       { input: '!5', expected: false },
       { input: '!!true', expected: true },
       { input: '!!false', expected: false },
-      { input: '!!5', expected: true }
+      { input: '!!5', expected: true },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -112,7 +118,7 @@ describe('Evaluator', () => {
       { input: 'if (1 < 2) { 10 }', expected: 10 },
       { input: 'if (1 > 2) { 10 }', expected: null },
       { input: 'if (1 > 2) { 10 } else { 20 }', expected: 20 },
-      { input: 'if (1 < 2) { 10 } else { 20 }', expected: 10 }
+      { input: 'if (1 < 2) { 10 } else { 20 }', expected: 10 },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -132,7 +138,7 @@ describe('Evaluator', () => {
       { input: 'return 10; 9;', expected: 10 },
       { input: 'return 2 * 5; 9;', expected: 10 },
       { input: '9; return 2 * 5; 9;', expected: 10 },
-      { input: 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }', expected: 10 }
+      { input: 'if (10 > 1) { if (10 > 1) { return 10; } return 1; }', expected: 10 },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -152,10 +158,10 @@ describe('Evaluator', () => {
       { input: 'if (10 > 1) { true + false; }', expected: 'unknown operator: BOOLEAN + BOOLEAN' },
       {
         input: 'if (10 > 1) { if (10 > 1) { return true + false; } return 1; }',
-        expected: 'unknown operator: BOOLEAN + BOOLEAN'
+        expected: 'unknown operator: BOOLEAN + BOOLEAN',
       },
       { input: 'foobar', expected: 'identifier not found: foobar' },
-      { input: '"Hello" - "World"', expected: 'unknown operator: STRING - STRING' }
+      { input: '"Hello" - "World"', expected: 'unknown operator: STRING - STRING' },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -176,7 +182,7 @@ describe('Evaluator', () => {
       { input: 'let a = 5; a;', expected: 5 },
       { input: 'let a = 5 * 5; a;', expected: 25 },
       { input: 'let a = 5; let b = a; b;', expected: 5 },
-      { input: 'let a = 5; let b = a; let c = a + b + 5; c;', expected: 15 }
+      { input: 'let a = 5; let b = a; let c = a + b + 5; c;', expected: 15 },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -216,7 +222,7 @@ describe('Evaluator', () => {
       { input: 'let double = fn(x) { x * 2; }; double(5);', expected: 10 },
       { input: 'let add = fn(x, y) { x + y; }; add(5, 5);', expected: 10 },
       { input: 'let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));', expected: 20 },
-      { input: 'fn(x) { x; }(5)', expected: 5 }
+      { input: 'fn(x) { x; }(5)', expected: 5 },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -230,26 +236,14 @@ describe('Evaluator', () => {
     const input = '"Hello World!"';
     const evaluated = testEvaluator(input);
 
-    it('object is StringObject', () => {
-      assert.ok(evaluated instanceof StringObject);
-    });
-
-    it(`should evaluate to input`, () => {
-      assert.strictEqual(evaluated.inspect(), 'Hello World!');
-    });
+    testStringObject(evaluated, 'Hello World!');
   });
 
   describe('evaluate string concatenation', () => {
     const input = '"Hello" + " " + "World!"';
     const evaluated = testEvaluator(input);
 
-    it('object is StringObject', () => {
-      assert.ok(evaluated instanceof StringObject);
-    });
-
-    it(`should evaluate to input`, () => {
-      assert.strictEqual(evaluated.inspect(), 'Hello World!');
-    });
+    testStringObject(evaluated, 'Hello World!');
   });
 
   describe('evaluate builtin functions', () => {
@@ -271,7 +265,7 @@ describe('Evaluator', () => {
       { input: `rest([])`, expected: null },
       { input: `push([], 1)`, expected: [1] },
       { input: `push(1, 1)`, expected: "argument to 'push' must be ARRAY, got INTEGER" },
-      { input: `puts(1)`, expected: null }
+      { input: `puts(1)`, expected: null },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -335,7 +329,7 @@ describe('Evaluator', () => {
       { input: 'let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];', expected: 6 },
       { input: 'let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]', expected: 2 },
       { input: '[1, 2, 3][3]', expected: null },
-      { input: '[1, 2, 3][-1]', expected: null }
+      { input: '[1, 2, 3][-1]', expected: null },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -358,7 +352,7 @@ describe('Evaluator', () => {
       { input: '{ 5: 5 }[5]', expected: 5 },
       { input: '{ true: 5 }[true]', expected: 5 },
       { input: '{ false: 5 }[false]', expected: 5 },
-      { input: '{"name": "Monkey"}[fn(x) { x }];', expected: 'unusable as hash key: FUNCTION_OBJECT' }
+      { input: '{"name": "Monkey"}[fn(x) { x }];', expected: 'unusable as hash key: FUNCTION_OBJECT' },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -415,7 +409,7 @@ describe('Evaluator', () => {
       [new StringObject('three').hashKey(), 3],
       [new IntegerObject(4).hashKey(), 4],
       [TRUE_OBJECT.hashKey(), 5],
-      [FALSE_OBJECT.hashKey(), 6]
+      [FALSE_OBJECT.hashKey(), 6],
     ]);
 
     it('should have the expected number of pairs', () => {
@@ -440,7 +434,7 @@ describe('Evaluator', () => {
       { input: 'let a = 5; let b = a; a = 10; b;', expected: 5 },
       { input: 'let a = 5; let b = fn() { a = 10; return a; }; b();', expected: 10 },
       { input: 'a = 10', expected: 'variable a reassigned before being declared' },
-      { input: 'let a = 10; a = "string"', expected: 'Reassignment mismatch: tried to assign STRING to INTEGER' }
+      { input: 'let a = 10; a = "string"', expected: 'Reassignment mismatch: tried to assign STRING to INTEGER' },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -466,8 +460,8 @@ describe('Evaluator', () => {
       { input: 'let a = 0; while (a < 10) { a = a + 1; if (a == 5) { return a; } }', expected: 5 },
       {
         input: 'let a = 0; while (a < 10) { a = a + 1; if (a == 5) { if (true) { return 2; } return a; } }',
-        expected: 2
-      }
+        expected: 2,
+      },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -477,3 +471,4 @@ describe('Evaluator', () => {
     });
   });
 });
+

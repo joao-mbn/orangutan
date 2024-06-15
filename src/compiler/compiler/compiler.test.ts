@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { InternalObject } from '../../interpreter/object/object';
-import { parse, testIntegerObject } from '../../testTools';
+import { parse, testIntegerObject, testStringObject } from '../../testTools';
 import { Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
 
@@ -43,6 +43,9 @@ describe('Test Compiler', () => {
       switch (true) {
         case typeof expectedConstant === 'number':
           testIntegerObject(actual[i], expectedConstant);
+          break;
+        case typeof expectedConstant === 'string':
+          testStringObject(actual[i], expectedConstant);
           break;
         default:
           break;
@@ -140,6 +143,28 @@ describe('Test Compiler', () => {
         input: 'false',
         expectedConstants: [],
         expectedInstructions: [make(Opcode.OpFalse), make(Opcode.OpPop)],
+      },
+    ];
+
+    testCompiler(tests);
+  });
+
+  describe('Test string expressions', () => {
+    const tests = [
+      {
+        input: '"monkey"',
+        expectedConstants: ['monkey'],
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: '"mon" + "key"',
+        expectedConstants: ['mon', 'key'],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0),
+          make(Opcode.OpConstant, 1),
+          make(Opcode.OpAdd),
+          make(Opcode.OpPop),
+        ],
       },
     ];
 

@@ -1,6 +1,6 @@
 import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
 import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
-import { IntegerObject, InternalObject } from '../../interpreter/object/object';
+import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
 import { Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 
@@ -168,21 +168,35 @@ export class VM {
     }
 
     if (left instanceof IntegerObject && right instanceof IntegerObject) {
-      switch (opcode) {
-        case Opcode.OpAdd:
-          return this.push(new IntegerObject(left.value + right.value));
-        case Opcode.OpSub:
-          return this.push(new IntegerObject(left.value - right.value));
-        case Opcode.OpMul:
-          return this.push(new IntegerObject(left.value * right.value));
-        case Opcode.OpDiv:
-          return this.push(new IntegerObject(left.value / right.value));
-        default:
-          throw new Error(`operation ${opcode} unsupported for integer literals`);
-      }
+      return this.executeBinaryIntegerOperation(opcode, left, right);
+    } else if (left instanceof StringObject && right instanceof StringObject) {
+      return this.executeBinaryStringOperation(opcode, left, right);
     } else {
       throw new Error(`operation unsupported for ${left.objectType()} and ${right.objectType()}`);
     }
+  }
+
+  executeBinaryIntegerOperation(opcode: Opcode, left: IntegerObject, right: IntegerObject) {
+    switch (opcode) {
+      case Opcode.OpAdd:
+        return this.push(new IntegerObject(left.value + right.value));
+      case Opcode.OpSub:
+        return this.push(new IntegerObject(left.value - right.value));
+      case Opcode.OpMul:
+        return this.push(new IntegerObject(left.value * right.value));
+      case Opcode.OpDiv:
+        return this.push(new IntegerObject(left.value / right.value));
+      default:
+        throw new Error(`operation ${opcode} unsupported for integer literals`);
+    }
+  }
+
+  executeBinaryStringOperation(opcode: Opcode, left: StringObject, right: StringObject) {
+    if (opcode !== Opcode.OpAdd) {
+      throw new Error(`operation ${opcode} unsupported for string literals`);
+    }
+
+    return this.push(new StringObject(left.value + right.value));
   }
 
   executeComparison(opcode: Opcode) {

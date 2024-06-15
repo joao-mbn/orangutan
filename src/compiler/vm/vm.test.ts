@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { NULL } from '../../interpreter/evaluator/defaultObjects';
 import { InternalObject } from '../../interpreter/object/object';
-import { parse, testBooleanObject, testIntegerObject } from '../../testTools';
+import { parse, testBooleanObject, testIntegerObject, testStringObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
 import { VM } from './vm';
 
@@ -14,6 +14,9 @@ describe('Test VM', () => {
         break;
       case typeof expected === 'boolean':
         testBooleanObject(actual, expected);
+        break;
+      case typeof expected === 'string':
+        testStringObject(actual, expected);
         break;
       case expected === NULL:
         assert.strictEqual(actual, NULL);
@@ -96,9 +99,11 @@ describe('Test VM', () => {
     { input: 'if (false) { 10 }', expected: NULL },
     { input: '!(if (false) { 5; })', expected: true },
     { input: 'if ((if (false) { 10 })) { 10 } else { 20 }', expected: 20 },
-    // { input: 'let one = 1; one', expected: 1 },
-    // { input: 'let one = 1; let two = 2; one + two', expected: 3 },
-    // { input: 'let one = 1; let two = one + one; one + two', expected: 3 },
+    { input: 'let one = 1; one', expected: 1 },
+    { input: 'let one = 1; let two = 2; one + two', expected: 3 },
+    { input: 'let one = 1; let two = one + one; one + two', expected: 3 },
+    { input: '"monkey"', expected: 'monkey' },
+    { input: '"mon" + "key"', expected: 'monkey' },
   ];
 
   tests.forEach(({ input, expected }) => {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { it } from 'node:test';
 import { NULL } from './interpreter/evaluator/defaultObjects';
 import { Lexer } from './interpreter/lexer/lexer';
-import { BooleanObject, IntegerObject, InternalObject } from './interpreter/object/object';
+import { BooleanObject, IntegerObject, InternalObject, StringObject } from './interpreter/object/object';
 import { Parser } from './interpreter/parser/parser';
 
 export function getProgramAndParser(input: string) {
@@ -45,6 +45,16 @@ export function testBooleanObject(object: InternalObject, expected: boolean) {
 export function testNullObject(object: InternalObject) {
   it('object is NULL', () => {
     assert.strictEqual(object, NULL);
+  });
+}
+
+export function testStringObject(object: InternalObject, expected: string) {
+  it('object is StringObject', () => {
+    assert.ok(object instanceof StringObject);
+  });
+
+  it(`should evaluate to ${expected}`, () => {
+    assert.strictEqual(object.inspect(), expected);
   });
 }
 
