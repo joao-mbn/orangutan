@@ -1,3 +1,5 @@
+import { InternalObject, ObjectType } from '../../interpreter/object/object';
+
 export enum Opcode {
   OpConstant = 0,
   OpAdd = 1,
@@ -22,6 +24,9 @@ export enum Opcode {
   OpArray = 18,
   OpHash = 19,
   OpIndex = 20,
+  OpCall = 21,
+  OpReturnValue = 22,
+  OpReturn = 23,
 }
 
 export interface Definition {
@@ -51,6 +56,9 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpArray]: { name: 'OpArray', operandWidths: [2] },
   [Opcode.OpHash]: { name: 'OpHash', operandWidths: [2] },
   [Opcode.OpIndex]: { name: 'OpIndex', operandWidths: [] },
+  [Opcode.OpCall]: { name: 'OpCall', operandWidths: [] },
+  [Opcode.OpReturnValue]: { name: 'OpReturnValue', operandWidths: [] },
+  [Opcode.OpReturn]: { name: 'OpReturn', operandWidths: [] },
 };
 
 export class Instructions extends Uint8Array {
@@ -193,3 +201,14 @@ export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
 
+export class CompiledFunction implements InternalObject {
+  constructor(public instructions: Instructions) {}
+
+  objectType() {
+    return ObjectType.COMPILED_FUNCTION_OBJECT;
+  }
+
+  inspect() {
+    return `CompiledFunction[${this}]`;
+  }
+}

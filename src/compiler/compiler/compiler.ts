@@ -5,6 +5,7 @@ import {
   BooleanLiteral,
   Expression,
   ExpressionStatement,
+  FunctionLiteral,
   HashLiteral,
   Identifier,
   IfExpression,
@@ -14,27 +15,29 @@ import {
   LetStatement,
   PrefixExpression,
   Program,
+  ReturnStatement,
   StringLiteral,
 } from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
-import { Instructions, Opcode, concatInstructions, make } from '../code/code';
+import { CompiledFunction, Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { SymbolTable } from './symbolTable';
 
 export class Compiler {
-  instructions: Instructions;
   constants: InternalObject[];
   symbols: SymbolTable;
-  lastInstruction: EmittedInstruction;
-  previousInstruction: EmittedInstruction;
+
+  scopes: CompilationScope[];
+  scopeIndex: number;
 
   constructor(symbols: SymbolTable = new SymbolTable(), constants: InternalObject[] = []) {
-    this.instructions = new Instructions(0);
     this.constants = constants;
     this.symbols = symbols;
 
     /* bogus values */
-    this.lastInstruction = { opcode: Opcode.OpConstant, position: -1 };
-    this.previousInstruction = { opcode: Opcode.OpConstant, position: -1 };
+    const mainScope = new CompilationScope();
+
+    this.scopes = [mainScope];
+    this.scopeIndex = 0;
   }
 
   compile(node: AstNode): Error | null {
@@ -121,7 +124,7 @@ export class Compiler {
 
         this.compile(node.consequence);
 
-        if (this.lastInstructionIsPop()) {
+        if (this.lastInstructionIs(Opcode.OpPop)) {
           this.removeLastPop();
         }
 
@@ -129,12 +132,12 @@ export class Compiler {
         const opJumpPosition = this.emit(Opcode.OpJump, 9999);
 
         /* The jump-not-truthy position is the one just after the last instruction after the consequence */
-        this.changeOperand(opJumpNotTruthyPosition, this.instructions.length);
+        this.changeOperand(opJumpNotTruthyPosition, this.currentInstructions().length);
 
         if (node.alternative) {
           this.compile(node.alternative);
 
-          if (this.lastInstructionIsPop()) {
+          if (this.lastInstructionIs(Opcode.OpPop)) {
             this.removeLastPop();
           }
         } else {
@@ -142,7 +145,7 @@ export class Compiler {
         }
 
         /* The jump position is the one just after the last instruction after the alternative */
-        this.changeOperand(opJumpPosition, this.instructions.length);
+        this.changeOperand(opJumpPosition, this.currentInstructions().length);
 
         break;
       case node instanceof Identifier:
@@ -189,6 +192,29 @@ export class Compiler {
 
         this.emit(Opcode.OpIndex);
         break;
+      case node instanceof FunctionLiteral:
+        this.enterScope();
+
+        this.compile(node.body);
+
+        if (this.lastInstructionIs(Opcode.OpPop)) {
+          this.replaceLastPopWithReturn();
+        }
+
+        if (!this.lastInstructionIs(Opcode.OpReturnValue)) {
+          this.emit(Opcode.OpReturn);
+        }
+
+        const instructions = this.leaveScope();
+        const compiledFunction = new CompiledFunction(instructions);
+        this.emit(Opcode.OpConstant, this.addConstant(compiledFunction));
+
+        break;
+      case node instanceof ReturnStatement:
+        this.compile(node.returnValue);
+
+        this.emit(Opcode.OpReturnValue);
+        break;
       default:
         throw new Error('Not implemented');
     }
@@ -196,7 +222,7 @@ export class Compiler {
   }
 
   bytecode() {
-    return new Bytecode(this.instructions, this.constants);
+    return new Bytecode(this.currentInstructions(), this.constants);
   }
 
   emit(op: Opcode, ...operands: number[]) {
@@ -208,8 +234,8 @@ export class Compiler {
   }
 
   addInstruction(instruction: Instructions) {
-    const positionNewInstruction = this.instructions.length;
-    this.instructions = concatInstructions([this.instructions, instruction]);
+    const positionNewInstruction = this.currentInstructions().length;
+    this.scopes[this.scopeIndex].instructions = concatInstructions([this.currentInstructions(), instruction]);
 
     return positionNewInstruction;
   }
@@ -220,30 +246,67 @@ export class Compiler {
   }
 
   setLastInstruction(opcode: Opcode, position: number) {
-    this.previousInstruction = this.lastInstruction;
-    this.lastInstruction = { opcode, position };
+    const previous = this.scopes[this.scopeIndex].lastInstruction;
+    const last = { opcode, position };
+
+    this.scopes[this.scopeIndex].previousInstruction = previous;
+    this.scopes[this.scopeIndex].lastInstruction = last;
   }
 
-  lastInstructionIsPop() {
-    return this.lastInstruction.opcode === Opcode.OpPop;
+  lastInstructionIs(opcode: Opcode) {
+    if (this.currentInstructions().length === 0) {
+      return false;
+    }
+
+    return this.scopes[this.scopeIndex].lastInstruction.opcode === opcode;
   }
 
   removeLastPop() {
-    this.instructions = this.instructions.slice(0, this.instructions.length - 1);
-    this.lastInstruction = this.previousInstruction;
+    const last = this.scopes[this.scopeIndex].lastInstruction;
+    const previous = this.scopes[this.scopeIndex].previousInstruction;
+
+    const oldInstructions = this.currentInstructions();
+    const newInstructions = oldInstructions.slice(0, last.position);
+
+    this.scopes[this.scopeIndex].instructions = newInstructions;
+    this.scopes[this.scopeIndex].lastInstruction = previous;
   }
 
   changeOperand(opPosition: number, operand: number) {
-    const opcode = this.instructions[opPosition] as Opcode;
+    const opcode = this.currentInstructions()[opPosition] as Opcode;
 
     const newInstruction = make(opcode, operand);
     this.replaceInstruction(opPosition, newInstruction);
   }
 
   replaceInstruction(position: number, newInstruction: Instructions) {
+    const instructions = this.currentInstructions();
     for (let i = 0; i < newInstruction.length; i++) {
-      this.instructions[position + i] = newInstruction[i];
+      instructions[position + i] = newInstruction[i];
     }
+  }
+
+  replaceLastPopWithReturn() {
+    const last = this.scopes[this.scopeIndex].lastInstruction;
+    this.replaceInstruction(last.position, make(Opcode.OpReturnValue));
+    this.scopes[this.scopeIndex].lastInstruction.opcode = Opcode.OpReturnValue;
+  }
+
+  currentInstructions() {
+    return this.scopes[this.scopeIndex].instructions;
+  }
+
+  enterScope() {
+    this.scopes.push(new CompilationScope());
+    this.scopeIndex++;
+  }
+
+  leaveScope() {
+    const instructions = this.currentInstructions();
+    this.scopes.pop();
+    this.scopeIndex--;
+
+    return instructions;
   }
 }
 
@@ -262,3 +325,14 @@ type EmittedInstruction = {
   position: number;
 };
 
+export class CompilationScope {
+  instructions: Instructions;
+  lastInstruction: EmittedInstruction;
+  previousInstruction: EmittedInstruction;
+
+  constructor() {
+    this.instructions = new Instructions(0);
+    this.lastInstruction = { opcode: Opcode.OpConstant, position: -1 };
+    this.previousInstruction = { opcode: Opcode.OpConstant, position: -1 };
+  }
+}

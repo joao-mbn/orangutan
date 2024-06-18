@@ -119,7 +119,7 @@ export class BlockStatement implements AstNode {
 
   constructor(
     statements: Statement[],
-    public token: Token // {
+    public token: Token, // {
   ) {
     this.statements = statements;
   }
@@ -140,7 +140,7 @@ export class ArrayLiteral implements Expression {
 
   constructor(
     elements: Expression[],
-    public token: Token // [
+    public token: Token, // [
   ) {
     this.elements = elements;
   }
@@ -201,7 +201,7 @@ export class BooleanLiteral implements Expression {
 
   constructor(
     public token: Token,
-    value: boolean
+    value: boolean,
   ) {
     this.value = value;
   }
@@ -242,7 +242,7 @@ export class PrefixExpression implements Expression {
   constructor(
     public token: Token,
     operator: string,
-    right: Expression
+    right: Expression,
   ) {
     this.operator = operator;
     this.right = right;
@@ -268,7 +268,7 @@ export class InfixExpression implements Expression {
     public token: Token,
     operator: string,
     left: Expression,
-    right: Expression
+    right: Expression,
   ) {
     this.operator = operator;
     this.left = left;
@@ -292,7 +292,7 @@ export class IfExpression implements Expression {
   constructor(
     public condition: Expression,
     public consequence: BlockStatement,
-    public alternative: BlockStatement | null
+    public alternative: BlockStatement | null,
   ) {}
 
   asString(): string {
@@ -315,7 +315,7 @@ export class WhileExpression implements Expression {
 
   constructor(
     public condition: Expression,
-    public block: BlockStatement
+    public block: BlockStatement,
   ) {}
 
   asString(): string {
@@ -334,7 +334,7 @@ export class FunctionLiteral implements Expression {
 
   constructor(
     public parameters: Identifier[],
-    public body: BlockStatement
+    public body: BlockStatement,
   ) {}
 
   asString(): string {
@@ -355,7 +355,7 @@ export class CallExpression implements Expression {
   constructor(
     public token: Token, // (
     func: Expression,
-    args: Expression[]
+    args: Expression[],
   ) {
     this.function = func;
     this.arguments = args;
@@ -379,7 +379,7 @@ export class IndexExpression implements Expression {
   constructor(
     public token: Token, // [
     left: Expression,
-    index: Expression
+    index: Expression,
   ) {
     this.left = left;
     this.index = index;
@@ -399,7 +399,7 @@ export class IndexExpression implements Expression {
 export class HashLiteral implements Expression {
   constructor(
     public token: Token, // {
-    public pairs: Map<Expression, Expression>
+    public pairs: Map<Expression, Expression>,
   ) {}
 
   asString(): string {
@@ -417,4 +417,3 @@ export class HashLiteral implements Expression {
     return this.token.literal;
   }
 }
-

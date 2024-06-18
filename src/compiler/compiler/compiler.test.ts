@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { InternalObject } from '../../interpreter/object/object';
 import { parse, testIntegerObject, testStringObject } from '../../testTools';
-import { Instructions, Opcode, concatInstructions, make } from '../code/code';
+import { CompiledFunction, Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
 
 type TestCases = { input: string; expectedConstants: unknown[]; expectedInstructions: Instructions[] }[];
@@ -46,6 +46,13 @@ describe('Test Compiler', () => {
           break;
         case typeof expectedConstant === 'string':
           testStringObject(actual[i], expectedConstant);
+          break;
+        case Array.isArray(expectedConstant) &&
+          expectedConstant.every((e): e is Instructions => e instanceof Instructions):
+          it('should be a function object', () => {
+            assert.ok(actual[i] instanceof CompiledFunction);
+          });
+          testInstructions(expectedConstant, (actual[i] as CompiledFunction).instructions);
           break;
         default:
           break;
@@ -456,5 +463,87 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
-});
 
+  describe('Test function literals', () => {
+    const inputs: TestCases = [
+      {
+        input: 'fn () { return 5 + 10; };',
+        expectedConstants: [
+          5,
+          10,
+          [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1), make(Opcode.OpAdd), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+      },
+      {
+        input: 'fn () { 5 + 10; };',
+        expectedConstants: [
+          5,
+          10,
+          [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1), make(Opcode.OpAdd), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+      },
+      {
+        input: 'fn () { 1; 2 };',
+        expectedConstants: [
+          1,
+          2,
+          [make(Opcode.OpConstant, 0), make(Opcode.OpPop), make(Opcode.OpConstant, 1), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+      },
+      {
+        input: 'fn () { };',
+        expectedConstants: [[make(Opcode.OpReturn)]],
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpPop)],
+      },
+    ];
+
+    testCompiler(inputs);
+  });
+
+  describe('Test scopes', () => {
+    it('should have correct scope index and instructions', () => {
+      const compiler = new Compiler();
+
+      assert.ok(compiler.scopeIndex === 0, `scope index wrong. got=${compiler.scopeIndex}, want=0`);
+
+      compiler.emit(Opcode.OpMul);
+
+      compiler.enterScope();
+
+      assert.ok((compiler.scopeIndex as number) === 1, `scope index wrong. got=${compiler.scopeIndex}, want=1`);
+
+      compiler.emit(Opcode.OpSub);
+
+      assert.ok(compiler.scopes[compiler.scopeIndex].instructions.length === 1);
+
+      const last = compiler.scopes[compiler.scopeIndex].lastInstruction;
+
+      assert.ok(last.opcode === Opcode.OpSub, `last instruction wrong. got=${last.opcode}, want=${Opcode.OpSub}`);
+
+      compiler.leaveScope();
+
+      assert.ok(compiler.scopeIndex === 0, `scope index wrong. got=${compiler.scopeIndex}, want=0`);
+
+      compiler.emit(Opcode.OpAdd);
+
+      assert.ok(compiler.scopes[compiler.scopeIndex].instructions.length === 2);
+
+      const lastOuter = compiler.scopes[compiler.scopeIndex].lastInstruction;
+
+      assert.ok(
+        lastOuter.opcode === Opcode.OpAdd,
+        `last instruction wrong. got=${lastOuter.opcode}, want=${Opcode.OpAdd}`,
+      );
+
+      const previous = compiler.scopes[compiler.scopeIndex].previousInstruction;
+
+      assert.ok(
+        previous.opcode === Opcode.OpMul,
+        `previous instruction wrong. got=${previous.opcode}, want=${Opcode.OpMul}`,
+      );
+    });
+  });
+});

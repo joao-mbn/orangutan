@@ -11,7 +11,8 @@ export enum ObjectType {
   FUNCTION_OBJECT = 'FUNCTION_OBJECT',
   STRING = 'STRING',
   BUILTIN_OBJECT = 'BUILTIN_OBJECT',
-  ARRAY_OBJECT = 'ARRAY_OBJECT'
+  ARRAY_OBJECT = 'ARRAY_OBJECT',
+  COMPILED_FUNCTION_OBJECT = 'COMPILED_FUNCTION_OBJECT',
 }
 
 export interface InternalObject {
@@ -121,7 +122,7 @@ export class FunctionObject implements InternalObject {
   constructor(
     public parameters: Identifier[],
     public body: BlockStatement,
-    public environment: Environment
+    public environment: Environment,
   ) {}
 
   objectType() {
@@ -171,4 +172,3 @@ export class HashObject implements InternalObject {
     return `{${pairs.join(', ')}}`;
   }
 }
-
