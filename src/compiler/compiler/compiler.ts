@@ -3,6 +3,7 @@ import {
   AstNode,
   BlockStatement,
   BooleanLiteral,
+  CallExpression,
   Expression,
   ExpressionStatement,
   FunctionLiteral,
@@ -214,6 +215,11 @@ export class Compiler {
         this.compile(node.returnValue);
 
         this.emit(Opcode.OpReturnValue);
+        break;
+      case node instanceof CallExpression:
+        this.compile(node.function);
+
+        this.emit(Opcode.OpCall, node.arguments.length);
         break;
       default:
         throw new Error('Not implemented');

@@ -546,4 +546,27 @@ describe('Test Compiler', () => {
       );
     });
   });
+
+  describe('Test function calls', () => {
+    const tests: TestCases = [
+      {
+        input: 'fn() { 24 }();',
+        expectedConstants: [24, [make(Opcode.OpConstant, 0), make(Opcode.OpReturnValue)]],
+        expectedInstructions: [make(Opcode.OpConstant, 1), make(Opcode.OpCall, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: 'let noArg = fn() { 24 }; noArg();',
+        expectedConstants: [24, [make(Opcode.OpConstant, 0), make(Opcode.OpReturnValue)]],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 1),
+          make(Opcode.OpSetGlobal, 0),
+          make(Opcode.OpGetGlobal, 0),
+          make(Opcode.OpCall, 0),
+          make(Opcode.OpPop),
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });

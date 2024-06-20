@@ -8,23 +8,26 @@ import {
   InternalObject,
   StringObject,
 } from '../../interpreter/object/object';
-import { Instructions, Opcode, readUint16 } from '../code/code';
+import { CompiledFunction, Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
+import { Frame } from './frame';
 
 const STACK_SIZE = 2048;
 const GLOBALS_SIZE = 0xffff; /* OpGetGlobal/OpSetGlobal operand is 16-bits wide */
 const CONSTANTS_SIZE = 0xffff; /* OpConstant operand is 16-bits wide */
+const MAX_FRAMES = 1024;
 
 export class VM {
   constants: InternalObject[];
   globals: InternalObject[];
-  instructions: Instructions;
+
   stack: InternalObject[];
   stackPointer: number; // points to the next empty slot
 
-  constructor(bytecode: Bytecode, globals: InternalObject[] = new Array(GLOBALS_SIZE).fill(null)) {
-    this.instructions = bytecode.instructions;
+  frames: Frame[];
+  framesIndex: number; // points to the next empty slot
 
+  constructor(bytecode: Bytecode, globals: InternalObject[] = new Array(GLOBALS_SIZE).fill(null)) {
     this.constants = [...bytecode.constants, ...new Array(CONSTANTS_SIZE - bytecode.constants.length).fill(null)];
     Object.seal(this.constants);
 
@@ -35,6 +38,15 @@ export class VM {
     Object.seal(this.stack);
 
     this.stackPointer = 0;
+
+    const mainFunction = new CompiledFunction(bytecode.instructions);
+    const mainFrame = new Frame(mainFunction);
+
+    this.frames = new Array(MAX_FRAMES).fill(null);
+    this.frames[0] = mainFrame;
+    Object.seal(this.frames);
+
+    this.framesIndex = 1;
   }
 
   stackTop() {
@@ -46,12 +58,21 @@ export class VM {
   }
 
   run() {
-    for (let instructionPointer = 0; instructionPointer < this.instructions.length; instructionPointer++) {
-      const opcode = this.instructions[instructionPointer];
+    let instructionPointer: number;
+    let instructions: Instructions;
+    let opcode: Opcode;
+
+    while (this.currentFrame().instructionPointer < this.currentFrame().instructions().length - 1) {
+      this.currentFrame().instructionPointer++;
+
+      instructionPointer = this.currentFrame().instructionPointer;
+      instructions = this.currentFrame().instructions();
+      opcode = instructions[instructionPointer] as Opcode;
+
       switch (opcode) {
         case Opcode.OpConstant:
-          const constIndex = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer += 2;
+          const constIndex = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer += 2;
 
           const constant = this.constants[constIndex];
           this.push(constant);
@@ -102,28 +123,28 @@ export class VM {
           const condition = this.pop();
 
           if (!isTruthy(condition)) {
-            const jumpToIndex = readUint16(this.instructions.slice(instructionPointer + 1));
-            instructionPointer = jumpToIndex - 1;
+            const jumpToIndex = readUint16(instructions.slice(instructionPointer + 1));
+            this.currentFrame().instructionPointer = jumpToIndex - 1;
           } else {
-            instructionPointer += 2;
+            this.currentFrame().instructionPointer += 2;
           }
 
           break;
         case Opcode.OpJump:
-          const jumpToIndex = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer = jumpToIndex - 1; /* it will increment 1 in the loop */
+          const jumpToIndex = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer = jumpToIndex - 1; /* it will increment 1 in the loop */
 
           break;
         case Opcode.OpSetGlobal:
-          const globalSetIndex = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer += 2;
+          const globalSetIndex = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer += 2;
 
           this.globals[globalSetIndex] = this.pop();
 
           break;
         case Opcode.OpGetGlobal:
-          const globalGetIndex = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer += 2;
+          const globalGetIndex = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer += 2;
 
           const global = this.globals[globalGetIndex];
 
@@ -131,8 +152,8 @@ export class VM {
 
           break;
         case Opcode.OpArray:
-          const size = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer += 2;
+          const size = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer += 2;
 
           const array = new ArrayObject(this.stack.slice(this.stackPointer - size, this.stackPointer));
           this.stackPointer -= size;
@@ -141,8 +162,8 @@ export class VM {
 
           break;
         case Opcode.OpHash:
-          const sizeHash = readUint16(this.instructions.slice(instructionPointer + 1));
-          instructionPointer += 2;
+          const sizeHash = readUint16(instructions.slice(instructionPointer + 1));
+          this.currentFrame().instructionPointer += 2;
 
           const elements = this.stack.slice(this.stackPointer - sizeHash, this.stackPointer);
           this.stackPointer -= sizeHash;
@@ -189,6 +210,30 @@ export class VM {
             throw new Error(`index operator ${index.objectType()} not supported for: ${left.objectType()}`);
           }
 
+          break;
+        case Opcode.OpCall:
+          const fn = this.stack[this.stackPointer - 1];
+          if (!(fn instanceof CompiledFunction)) {
+            throw new Error('calling non-function');
+          }
+
+          const frame = new Frame(fn);
+          this.pushFrame(frame);
+
+          break;
+        case Opcode.OpReturnValue:
+          const returnValue = this.pop(); /* pops the ReturnValue off of the current frame stack */
+
+          this.popFrame();
+          this.pop(); /* pops the CompiledFunction off of the outer frame stack */
+
+          this.push(returnValue); /* pushes the ReturnValue to the outer frame stack */
+          break;
+        case Opcode.OpReturn:
+          this.popFrame();
+          this.pop(); /* pops the CompiledFunction off of the outer frame stack */
+
+          this.push(NULL); /* pushes NULL to the outer frame stack */
           break;
         default:
           throw new Error(`unknown opcode: ${opcode}`);
@@ -302,5 +347,18 @@ export class VM {
         throw new Error(`operation ${opcode} unsupported for integer literals`);
     }
   }
-}
 
+  currentFrame() {
+    return this.frames[this.framesIndex - 1];
+  }
+
+  pushFrame(frame: Frame) {
+    this.frames[this.framesIndex] = frame;
+    this.framesIndex++;
+  }
+
+  popFrame() {
+    this.framesIndex--;
+    return this.frames[this.framesIndex];
+  }
+}
