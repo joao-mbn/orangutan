@@ -27,6 +27,8 @@ export enum Opcode {
   OpCall = 21,
   OpReturnValue = 22,
   OpReturn = 23,
+  OpGetLocal = 24,
+  OpSetLocal = 25,
 }
 
 export interface Definition {
@@ -59,6 +61,8 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpCall]: { name: 'OpCall', operandWidths: [] },
   [Opcode.OpReturnValue]: { name: 'OpReturnValue', operandWidths: [] },
   [Opcode.OpReturn]: { name: 'OpReturn', operandWidths: [] },
+  [Opcode.OpGetLocal]: { name: 'OpGetLocal', operandWidths: [1] },
+  [Opcode.OpSetLocal]: { name: 'OpSetLocal', operandWidths: [1] },
 };
 
 export class Instructions extends Uint8Array {
@@ -156,6 +160,9 @@ export function make(op: Opcode, ...operands: number[]): Instructions {
     const width = definition.operandWidths[i];
 
     switch (width) {
+      case 1:
+        instructions[offset] = operand;
+        break;
       case 2:
         // Break down the Uint16 value into two Uint8 values
         const highByte = operand >> 8;
@@ -165,9 +172,10 @@ export function make(op: Opcode, ...operands: number[]): Instructions {
         instructions[offset] = highByte;
         instructions[offset + 1] = lowByte;
 
-        offset += width;
         break;
     }
+
+    offset += width;
   });
 
   return instructions;
@@ -185,13 +193,17 @@ export function readOperands(
     const slice = instructions.slice(offset, offset + width);
 
     switch (width) {
+      case 1:
+        operands.push(slice[0]);
+
+        break;
       case 2:
         const operand = readUint16(slice);
         operands.push(operand);
 
-        offset += width;
         break;
     }
+    offset += width;
   });
 
   return { operands, offset };

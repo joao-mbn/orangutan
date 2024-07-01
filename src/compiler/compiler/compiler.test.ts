@@ -569,4 +569,52 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test let statements scopes', () => {
+    const tests: TestCases = [
+      {
+        input: 'let num = 55; fn() { num }',
+        expectedConstants: [55, [make(Opcode.OpGetGlobal, 0), make(Opcode.OpReturnValue)]],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0),
+          make(Opcode.OpSetGlobal, 0),
+          make(Opcode.OpConstant, 1),
+          make(Opcode.OpPop),
+        ],
+      },
+      {
+        input: 'fn() { let num = 55; num }',
+        expectedConstants: [
+          55,
+          [
+            make(Opcode.OpConstant, 0),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpReturnValue),
+          ],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 1), make(Opcode.OpPop)],
+      },
+      {
+        input: 'fn() { let a = 55; let b = 77; a + b }',
+        expectedConstants: [
+          55,
+          77,
+          [
+            make(Opcode.OpConstant, 0),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpConstant, 1),
+            make(Opcode.OpSetLocal, 1),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpGetLocal, 1),
+            make(Opcode.OpAdd),
+            make(Opcode.OpReturnValue),
+          ],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });

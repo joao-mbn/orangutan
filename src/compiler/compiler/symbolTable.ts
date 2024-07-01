@@ -1,5 +1,6 @@
 export enum SymbolScope {
   Global = 'GLOBAL',
+  Local = 'LOCAL',
 }
 
 export interface _Symbol {
@@ -9,23 +10,21 @@ export interface _Symbol {
 }
 
 export class SymbolTable {
-  store: Map<string, _Symbol>;
-
-  constructor(store: Map<string, _Symbol> = new Map<string, _Symbol>()) {
-    this.store = store;
-  }
+  constructor(
+    public outer?: SymbolTable,
+    public store: Map<string, _Symbol> = new Map<string, _Symbol>(),
+  ) {}
 
   define(name: string) {
-    const symbol = { name, scope: SymbolScope.Global, index: this.store.size };
+    const symbol = { name, scope: this.outer ? SymbolScope.Local : SymbolScope.Global, index: this.store.size };
     this.store.set(name, symbol);
     return symbol;
   }
 
-  resolve(name: string) {
+  resolve(name: string): false | _Symbol {
     if (!this.store.has(name)) {
-      return false;
+      return this.outer?.resolve(name) ?? false;
     }
-    return this.store.get(name);
+    return this.store.get(name) as _Symbol;
   }
 }
-
