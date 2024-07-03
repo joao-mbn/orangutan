@@ -21,7 +21,7 @@ import {
 } from '../../interpreter/ast/ast';
 import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
 import { CompiledFunction, Instructions, Opcode, concatInstructions, make } from '../code/code';
-import { SymbolTable } from './symbolTable';
+import { SymbolScope, SymbolTable } from './symbolTable';
 
 export class Compiler {
   constants: InternalObject[];
@@ -154,13 +154,13 @@ export class Compiler {
         if (!symbol) {
           throw new Error(`Identifier not found: ${node.value}`);
         }
-        this.emit(Opcode.OpGetGlobal, symbol.index);
+        this.emit(symbol.scope === SymbolScope.Local ? Opcode.OpGetLocal : Opcode.OpGetGlobal, symbol.index);
         break;
       case node instanceof LetStatement:
         this.compile(node.value);
 
-        const identifierIndex = this.symbols.define(node.name.value).index;
-        this.emit(Opcode.OpSetGlobal, identifierIndex);
+        const { scope, index: identifierIndex } = this.symbols.define(node.name.value);
+        this.emit(scope === SymbolScope.Local ? Opcode.OpSetLocal : Opcode.OpSetGlobal, identifierIndex);
         break;
       case node instanceof ArrayLiteral:
         for (const element of node.elements) {
@@ -305,12 +305,16 @@ export class Compiler {
   enterScope() {
     this.scopes.push(new CompilationScope());
     this.scopeIndex++;
+
+    this.symbols = new SymbolTable(this.symbols);
   }
 
   leaveScope() {
     const instructions = this.currentInstructions();
     this.scopes.pop();
     this.scopeIndex--;
+
+    this.symbols = this.symbols.outer as SymbolTable;
 
     return instructions;
   }
@@ -342,3 +346,4 @@ export class CompilationScope {
     this.previousInstruction = { opcode: Opcode.OpConstant, position: -1 };
   }
 }
+

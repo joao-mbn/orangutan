@@ -16,7 +16,11 @@ export class SymbolTable {
   ) {}
 
   define(name: string) {
-    const symbol = { name, scope: this.outer ? SymbolScope.Local : SymbolScope.Global, index: this.store.size };
+    const symbol = {
+      name,
+      scope: this.outer ? SymbolScope.Local : SymbolScope.Global,
+      index: this.store.size,
+    };
     this.store.set(name, symbol);
     return symbol;
   }
@@ -28,3 +32,4 @@ export class SymbolTable {
     return this.store.get(name) as _Symbol;
   }
 }
+

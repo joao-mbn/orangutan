@@ -509,8 +509,8 @@ describe('Test Compiler', () => {
 
       assert.ok(compiler.scopeIndex === 0, `scope index wrong. got=${compiler.scopeIndex}, want=0`);
 
+      const globalSymbolTable = compiler.symbols;
       compiler.emit(Opcode.OpMul);
-
       compiler.enterScope();
 
       assert.ok((compiler.scopeIndex as number) === 1, `scope index wrong. got=${compiler.scopeIndex}, want=1`);
@@ -522,10 +522,13 @@ describe('Test Compiler', () => {
       const last = compiler.scopes[compiler.scopeIndex].lastInstruction;
 
       assert.ok(last.opcode === Opcode.OpSub, `last instruction wrong. got=${last.opcode}, want=${Opcode.OpSub}`);
+      assert.ok(compiler.symbols.outer === globalSymbolTable, 'compiler did not enclose symbol table');
 
       compiler.leaveScope();
 
       assert.ok(compiler.scopeIndex === 0, `scope index wrong. got=${compiler.scopeIndex}, want=0`);
+      assert.ok(compiler.symbols === globalSymbolTable, 'compiler did not restore global symbol table');
+      assert.ok(compiler.symbols.outer === undefined, 'compiler did not restore global symbol table');
 
       compiler.emit(Opcode.OpAdd);
 
@@ -618,3 +621,4 @@ describe('Test Compiler', () => {
     testCompiler(tests);
   });
 });
+
