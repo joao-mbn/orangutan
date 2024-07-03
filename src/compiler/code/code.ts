@@ -58,7 +58,7 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpArray]: { name: 'OpArray', operandWidths: [2] },
   [Opcode.OpHash]: { name: 'OpHash', operandWidths: [2] },
   [Opcode.OpIndex]: { name: 'OpIndex', operandWidths: [] },
-  [Opcode.OpCall]: { name: 'OpCall', operandWidths: [] },
+  [Opcode.OpCall]: { name: 'OpCall', operandWidths: [1] },
   [Opcode.OpReturnValue]: { name: 'OpReturnValue', operandWidths: [] },
   [Opcode.OpReturn]: { name: 'OpReturn', operandWidths: [] },
   [Opcode.OpGetLocal]: { name: 'OpGetLocal', operandWidths: [1] },
@@ -214,7 +214,10 @@ export function readUint16(slice: Instructions): number {
 }
 
 export class CompiledFunction implements InternalObject {
-  constructor(public instructions: Instructions) {}
+  constructor(
+    public instructions: Instructions,
+    public numberLocals: number,
+  ) {}
 
   objectType() {
     return ObjectType.COMPILED_FUNCTION_OBJECT;
@@ -224,3 +227,4 @@ export class CompiledFunction implements InternalObject {
     return `CompiledFunction[${this}]`;
   }
 }
+

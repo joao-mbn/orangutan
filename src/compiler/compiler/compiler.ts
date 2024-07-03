@@ -206,8 +206,9 @@ export class Compiler {
           this.emit(Opcode.OpReturn);
         }
 
+        const numberLocals = this.symbols.store.size;
         const instructions = this.leaveScope();
-        const compiledFunction = new CompiledFunction(instructions);
+        const compiledFunction = new CompiledFunction(instructions, numberLocals);
         this.emit(Opcode.OpConstant, this.addConstant(compiledFunction));
 
         break;

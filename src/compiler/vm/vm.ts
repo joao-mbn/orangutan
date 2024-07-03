@@ -39,8 +39,11 @@ export class VM {
 
     this.stackPointer = 0;
 
-    const mainFunction = new CompiledFunction(bytecode.instructions);
-    const mainFrame = new Frame(mainFunction);
+    const mainFunction = new CompiledFunction(
+      bytecode.instructions,
+      0 /* bogus value, mainFunction represents global scope */,
+    );
+    const mainFrame = new Frame(mainFunction, 0);
 
     this.frames = new Array(MAX_FRAMES).fill(null);
     this.frames[0] = mainFrame;
@@ -142,6 +145,13 @@ export class VM {
           this.globals[globalSetIndex] = this.pop();
 
           break;
+        case Opcode.OpSetLocal:
+          const localSetIndex = instructions[instructionPointer + 1];
+          this.currentFrame().instructionPointer++;
+
+          this.stack[this.currentFrame().basePointer + localSetIndex] = this.pop();
+
+          break;
         case Opcode.OpGetGlobal:
           const globalGetIndex = readUint16(instructions.slice(instructionPointer + 1));
           this.currentFrame().instructionPointer += 2;
@@ -149,6 +159,15 @@ export class VM {
           const global = this.globals[globalGetIndex];
 
           this.push(global);
+
+          break;
+        case Opcode.OpGetLocal:
+          const localGetIndex = instructions[instructionPointer + 1];
+          this.currentFrame().instructionPointer++;
+
+          const local = this.stack[this.currentFrame().basePointer + localGetIndex];
+
+          this.push(local);
 
           break;
         case Opcode.OpArray:
@@ -212,26 +231,29 @@ export class VM {
 
           break;
         case Opcode.OpCall:
-          const fn = this.stack[this.stackPointer - 1];
+          const fn = this.stackTop();
           if (!(fn instanceof CompiledFunction)) {
             throw new Error('calling non-function');
           }
 
-          const frame = new Frame(fn);
+          const frame = new Frame(fn, this.stackPointer);
           this.pushFrame(frame);
 
+          this.stackPointer = frame.basePointer + fn.numberLocals;
           break;
         case Opcode.OpReturnValue:
           const returnValue = this.pop(); /* pops the ReturnValue off of the current frame stack */
 
-          this.popFrame();
-          this.pop(); /* pops the CompiledFunction off of the outer frame stack */
+          const opReturnValuePoppedFrame = this.popFrame();
+          /* pops the CompiledFunction and local bindings off of the outer frame stack */
+          this.stackPointer = opReturnValuePoppedFrame.basePointer - 1;
 
           this.push(returnValue); /* pushes the ReturnValue to the outer frame stack */
           break;
         case Opcode.OpReturn:
-          this.popFrame();
-          this.pop(); /* pops the CompiledFunction off of the outer frame stack */
+          const opReturnPoppedFrame = this.popFrame();
+          /* pops the CompiledFunction and local bindings off of the outer frame stack */
+          this.stackPointer = opReturnPoppedFrame.basePointer - 1;
 
           this.push(NULL); /* pushes NULL to the outer frame stack */
           break;
@@ -362,3 +384,4 @@ export class VM {
     return this.frames[this.framesIndex];
   }
 }
+
