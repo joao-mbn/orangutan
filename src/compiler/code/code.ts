@@ -217,6 +217,7 @@ export class CompiledFunction implements InternalObject {
   constructor(
     public instructions: Instructions,
     public numberLocals: number,
+    public numberParameters: number,
   ) {}
 
   objectType() {

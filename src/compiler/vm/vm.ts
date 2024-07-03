@@ -42,6 +42,7 @@ export class VM {
     const mainFunction = new CompiledFunction(
       bytecode.instructions,
       0 /* bogus value, mainFunction represents global scope */,
+      0,
     );
     const mainFrame = new Frame(mainFunction, 0);
 
@@ -231,15 +232,11 @@ export class VM {
 
           break;
         case Opcode.OpCall:
-          const fn = this.stackTop();
-          if (!(fn instanceof CompiledFunction)) {
-            throw new Error('calling non-function');
-          }
+          const numberOfArguments = instructions[instructionPointer + 1];
+          this.currentFrame().instructionPointer++;
 
-          const frame = new Frame(fn, this.stackPointer);
-          this.pushFrame(frame);
+          this.callFunction(numberOfArguments);
 
-          this.stackPointer = frame.basePointer + fn.numberLocals;
           break;
         case Opcode.OpReturnValue:
           const returnValue = this.pop(); /* pops the ReturnValue off of the current frame stack */
@@ -382,6 +379,22 @@ export class VM {
   popFrame() {
     this.framesIndex--;
     return this.frames[this.framesIndex];
+  }
+
+  callFunction(numberOfArguments: number) {
+    const fn = this.stack[this.stackPointer - 1 - numberOfArguments];
+    if (!(fn instanceof CompiledFunction)) {
+      throw new Error('calling non-function');
+    }
+
+    if (fn.numberParameters !== numberOfArguments) {
+      throw new Error(`wrong number of arguments: want=${fn.numberParameters}, got=${numberOfArguments}`);
+    }
+
+    const frame = new Frame(fn, this.stackPointer - numberOfArguments);
+    this.pushFrame(frame);
+
+    this.stackPointer = frame.basePointer + fn.numberLocals;
   }
 }
 

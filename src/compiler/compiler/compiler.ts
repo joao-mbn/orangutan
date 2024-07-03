@@ -196,6 +196,10 @@ export class Compiler {
       case node instanceof FunctionLiteral:
         this.enterScope();
 
+        for (const param of node.parameters) {
+          this.symbols.define(param.value);
+        }
+
         this.compile(node.body);
 
         if (this.lastInstructionIs(Opcode.OpPop)) {
@@ -208,7 +212,7 @@ export class Compiler {
 
         const numberLocals = this.symbols.store.size;
         const instructions = this.leaveScope();
-        const compiledFunction = new CompiledFunction(instructions, numberLocals);
+        const compiledFunction = new CompiledFunction(instructions, numberLocals, node.parameters.length);
         this.emit(Opcode.OpConstant, this.addConstant(compiledFunction));
 
         break;
@@ -219,6 +223,10 @@ export class Compiler {
         break;
       case node instanceof CallExpression:
         this.compile(node.function);
+
+        for (const element of node.arguments) {
+          this.compile(element);
+        }
 
         this.emit(Opcode.OpCall, node.arguments.length);
         break;
