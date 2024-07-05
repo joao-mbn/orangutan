@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { NULL } from '../../interpreter/evaluator/defaultObjects';
+import { NULL } from '../../interpreter/object/defaultObjects';
 import { ArrayObject, HashObject, IntegerObject, InternalObject } from '../../interpreter/object/object';
 import { parse, testArrayObject, testBooleanObject, testIntegerObject, testStringObject } from '../../testTools';
 import { Compiler } from '../compiler/compiler';
@@ -288,6 +288,20 @@ describe('Test VM', () => {
       `,
       expected: 50,
     },
+    { input: 'len("")', expected: 0 },
+    { input: 'len("four")', expected: 4 },
+    { input: 'len("hello world")', expected: 11 },
+    { input: 'len([1, 2, 3])', expected: 3 },
+    { input: 'len([])', expected: 0 },
+    { input: 'puts("hello", "world")', expected: NULL },
+    { input: 'first([1, 2, 3])', expected: 1 },
+    { input: 'first([])', expected: NULL },
+    { input: 'last([1, 2, 3])', expected: 3 },
+    { input: 'last([])', expected: NULL },
+    { input: 'rest([1, 2, 3])', expected: [2, 3] },
+    { input: 'rest([])', expected: NULL },
+    { input: 'push([], 1)', expected: [1] },
+    { input: 'push([1], 2)', expected: [1, 2] },
   ];
 
   tests.forEach(({ input, expected }) => {
@@ -329,6 +343,30 @@ describe('Test VM with error', () => {
     {
       input: `fn(a, b) { a + b; }(1);`,
       expected: `wrong number of arguments: want=2, got=1`,
+    },
+    {
+      input: `len(1);`,
+      expected: `argument to 'len' not supported, got INTEGER`,
+    },
+    {
+      input: `len("one", "two");`,
+      expected: `wrong number of arguments. got=2, want=1`,
+    },
+    {
+      input: `first(1);`,
+      expected: `argument to 'first' must be ARRAY, got INTEGER`,
+    },
+    {
+      input: `last(1);`,
+      expected: `argument to 'last' must be ARRAY, got INTEGER`,
+    },
+    {
+      input: `rest(1);`,
+      expected: `argument to 'rest' must be ARRAY, got INTEGER`,
+    },
+    {
+      input: `push(1, 1);`,
+      expected: `argument to 'push' must be ARRAY, got INTEGER`,
     },
   ];
 

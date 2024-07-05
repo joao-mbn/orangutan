@@ -8,9 +8,9 @@ import {
   testNullObject,
   testStringObject,
 } from '../../testTools';
+import { FALSE_OBJECT, TRUE_OBJECT } from '../object/defaultObjects';
 import { Environment } from '../object/environment';
 import { ArrayObject, ErrorObject, FunctionObject, HashObject, IntegerObject, StringObject } from '../object/object';
-import { FALSE_OBJECT, TRUE_OBJECT } from './defaultObjects';
 import { evaluator } from './evaluator';
 
 describe('Evaluator', () => {

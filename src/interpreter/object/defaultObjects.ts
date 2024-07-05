@@ -1,4 +1,4 @@
-import { BooleanObject, NullObject } from '../object/object';
+import { BooleanObject, NullObject } from './object';
 
 export const TRUE_OBJECT = new BooleanObject(true);
 export const FALSE_OBJECT = new BooleanObject(false);

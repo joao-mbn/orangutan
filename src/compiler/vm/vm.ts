@@ -1,7 +1,10 @@
-import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/evaluator/defaultObjects';
 import { isTruthy, nativeBooleanToBooleanObject } from '../../interpreter/evaluator/evaluator';
+import { builtinRecord } from '../../interpreter/object/builtins';
+import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../../interpreter/object/defaultObjects';
 import {
   ArrayObject,
+  BuiltinFunctionObject,
+  ErrorObject,
   HashObject,
   Hashable,
   IntegerObject,
@@ -171,6 +174,18 @@ export class VM {
           this.push(local);
 
           break;
+        case Opcode.OpGetBuiltin:
+          const builtinIndex = instructions[instructionPointer + 1];
+          this.currentFrame().instructionPointer++;
+
+          const builtin = Object.values(builtinRecord)[builtinIndex];
+          if (!builtin) {
+            throw new Error(`builtin not found at index: ${builtinIndex}`);
+          }
+
+          this.push(builtin);
+
+          break;
         case Opcode.OpArray:
           const size = readUint16(instructions.slice(instructionPointer + 1));
           this.currentFrame().instructionPointer += 2;
@@ -235,7 +250,7 @@ export class VM {
           const numberOfArguments = instructions[instructionPointer + 1];
           this.currentFrame().instructionPointer++;
 
-          this.callFunction(numberOfArguments);
+          this.executeCall(numberOfArguments);
 
           break;
         case Opcode.OpReturnValue:
@@ -381,20 +396,43 @@ export class VM {
     return this.frames[this.framesIndex];
   }
 
-  callFunction(numberOfArguments: number) {
-    const fn = this.stack[this.stackPointer - 1 - numberOfArguments];
-    if (!(fn instanceof CompiledFunction)) {
-      throw new Error('calling non-function');
+  executeCall(numberOfArguments: number) {
+    const callee = this.stack[this.stackPointer - 1 - numberOfArguments];
+
+    switch (true) {
+      case callee instanceof CompiledFunction:
+        this.callFunction(callee, numberOfArguments);
+        break;
+      case callee instanceof BuiltinFunctionObject:
+        this.callBuiltin(callee, numberOfArguments);
+        break;
+      default:
+        throw new Error(`calling non-function and non-builtin`);
+    }
+  }
+
+  callFunction(callee: CompiledFunction, numberOfArguments: number) {
+    if (callee.numberParameters !== numberOfArguments) {
+      throw new Error(`wrong number of arguments: want=${callee.numberParameters}, got=${numberOfArguments}`);
     }
 
-    if (fn.numberParameters !== numberOfArguments) {
-      throw new Error(`wrong number of arguments: want=${fn.numberParameters}, got=${numberOfArguments}`);
-    }
-
-    const frame = new Frame(fn, this.stackPointer - numberOfArguments);
+    const frame = new Frame(callee, this.stackPointer - numberOfArguments);
     this.pushFrame(frame);
 
-    this.stackPointer = frame.basePointer + fn.numberLocals;
+    this.stackPointer = frame.basePointer + callee.numberLocals;
+  }
+
+  callBuiltin(callee: BuiltinFunctionObject, numberOfArguments: number) {
+    const args = this.stack.slice(this.stackPointer - numberOfArguments, this.stackPointer);
+    const result = callee.fn(...args);
+
+    this.stackPointer -= numberOfArguments - 1;
+
+    if (result instanceof ErrorObject) {
+      throw new Error(result.message);
+    } else {
+      this.push(result);
+    }
   }
 }
 

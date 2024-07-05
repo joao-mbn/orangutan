@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
-import { NULL } from './interpreter/evaluator/defaultObjects';
 import { Lexer } from './interpreter/lexer/lexer';
+import { NULL } from './interpreter/object/defaultObjects';
 import { ArrayObject, BooleanObject, IntegerObject, InternalObject, StringObject } from './interpreter/object/object';
 import { Parser } from './interpreter/parser/parser';
 

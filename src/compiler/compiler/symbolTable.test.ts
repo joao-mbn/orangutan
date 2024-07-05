@@ -1,4 +1,4 @@
-import { deepStrictEqual, strictEqual } from 'node:assert';
+import assert, { deepStrictEqual, strictEqual } from 'node:assert';
 import { describe, it } from 'node:test';
 import { SymbolScope, SymbolTable, _Symbol } from './symbolTable';
 
@@ -118,3 +118,32 @@ describe('Test resolve nested local', () => {
     deepStrictEqual(f, { name: 'f', scope: SymbolScope.Local, index: 1 });
   });
 });
+
+describe('Test define and resolve builtin', () => {
+  const global = new SymbolTable();
+  const firstLocal = new SymbolTable(global);
+  const secondLocal = new SymbolTable(firstLocal);
+
+  const expected = [
+    { name: 'a', scope: SymbolScope.BuiltIn, index: 0 },
+    { name: 'b', scope: SymbolScope.BuiltIn, index: 1 },
+    { name: 'e', scope: SymbolScope.BuiltIn, index: 2 },
+    { name: 'f', scope: SymbolScope.BuiltIn, index: 3 },
+  ];
+
+  expected.forEach((symbol, index) => {
+    global.defineBuiltIn(index, symbol.name);
+  });
+
+  for (const scope of [global, firstLocal, secondLocal]) {
+    for (const symbol of expected) {
+      it('should define builtins', () => {
+        const result = scope.resolve(symbol.name);
+        assert.ok(result);
+
+        deepStrictEqual(result, symbol);
+      });
+    }
+  }
+});
+

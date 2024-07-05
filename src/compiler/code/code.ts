@@ -29,6 +29,7 @@ export enum Opcode {
   OpReturn = 23,
   OpGetLocal = 24,
   OpSetLocal = 25,
+  OpGetBuiltin = 26,
 }
 
 export interface Definition {
@@ -63,6 +64,7 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpReturn]: { name: 'OpReturn', operandWidths: [] },
   [Opcode.OpGetLocal]: { name: 'OpGetLocal', operandWidths: [1] },
   [Opcode.OpSetLocal]: { name: 'OpSetLocal', operandWidths: [1] },
+  [Opcode.OpGetBuiltin]: { name: 'OpGetBuiltin', operandWidths: [1] },
 };
 
 export class Instructions extends Uint8Array {

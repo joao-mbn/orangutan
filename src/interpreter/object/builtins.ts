@@ -1,12 +1,5 @@
-import {
-  ArrayObject,
-  BuiltinFunctionObject,
-  ErrorObject,
-  IntegerObject,
-  InternalObject,
-  StringObject
-} from '../object/object';
 import { NULL } from './defaultObjects';
+import { ArrayObject, BuiltinFunctionObject, ErrorObject, IntegerObject, InternalObject, StringObject } from './object';
 
 const LEN = new BuiltinFunctionObject((...args: InternalObject[]) => {
   if (args.length !== 1) {
@@ -107,12 +100,12 @@ const PUTS = new BuiltinFunctionObject((...args: InternalObject[]) => {
   return NULL;
 });
 
-export const builtins = new Map<string, BuiltinFunctionObject>([
-  ['len', LEN],
-  ['first', FIRST],
-  ['last', LAST],
-  ['rest', REST],
-  ['push', PUSH],
-  ['puts', PUTS]
-]);
+export const builtinRecord: Record<string, BuiltinFunctionObject> = {
+  len: LEN,
+  puts: PUTS,
+  first: FIRST,
+  last: LAST,
+  rest: REST,
+  push: PUSH,
+};
 

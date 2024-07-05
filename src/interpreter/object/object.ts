@@ -172,3 +172,4 @@ export class HashObject implements InternalObject {
     return `{${pairs.join(', ')}}`;
   }
 }
+

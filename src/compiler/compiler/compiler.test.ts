@@ -658,5 +658,36 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test built-in functions', () => {
+    const tests: TestCases = [
+      {
+        input: `
+        len([]);
+        push([], 1);`,
+        expectedConstants: [1],
+        expectedInstructions: [
+          make(Opcode.OpGetBuiltin, 0),
+          make(Opcode.OpArray, 0),
+          make(Opcode.OpCall, 1),
+          make(Opcode.OpPop),
+          make(Opcode.OpGetBuiltin, 5),
+          make(Opcode.OpArray, 0),
+          make(Opcode.OpConstant, 0),
+          make(Opcode.OpCall, 2),
+          make(Opcode.OpPop),
+        ],
+      },
+      {
+        input: 'fn() { len([]) };',
+        expectedConstants: [
+          [make(Opcode.OpGetBuiltin, 0), make(Opcode.OpArray, 0), make(Opcode.OpCall, 1), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpPop)],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });
 

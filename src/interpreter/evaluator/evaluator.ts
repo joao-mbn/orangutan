@@ -19,8 +19,10 @@ import {
   ReassignStatement,
   ReturnStatement,
   StringLiteral,
-  WhileExpression
+  WhileExpression,
 } from '../ast/ast';
+import { builtinRecord } from '../object/builtins';
+import { FALSE_OBJECT, NULL, TRUE_OBJECT } from '../object/defaultObjects';
 import { Environment } from '../object/environment';
 import {
   ArrayObject,
@@ -33,10 +35,8 @@ import {
   IntegerObject,
   InternalObject,
   ReturnValueObject,
-  StringObject
+  StringObject,
 } from '../object/object';
-import { builtins } from './builtins';
-import { FALSE_OBJECT, NULL, TRUE_OBJECT } from './defaultObjects';
 
 export function evaluator(node: AstNode, environment: Environment): InternalObject {
   if (node instanceof Program) {
@@ -123,7 +123,7 @@ export function evaluator(node: AstNode, environment: Environment): InternalObje
 
     if (currentValue.objectType() !== newValue.objectType()) {
       return new ErrorObject(
-        `Reassignment mismatch: tried to assign ${newValue.objectType()} to ${currentValue.objectType()}`
+        `Reassignment mismatch: tried to assign ${newValue.objectType()} to ${currentValue.objectType()}`,
       );
     }
 
@@ -352,7 +352,7 @@ function evaluateIdentifier(node: Identifier, environment: Environment): Interna
     return value;
   }
 
-  const builtin = builtins.get(node.value);
+  const builtin = builtinRecord[node.value];
   if (builtin !== undefined) {
     return builtin;
   }

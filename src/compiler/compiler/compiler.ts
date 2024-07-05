@@ -19,9 +19,10 @@ import {
   ReturnStatement,
   StringLiteral,
 } from '../../interpreter/ast/ast';
+import { builtinRecord } from '../../interpreter/object/builtins';
 import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
-import { CompiledFunction, Instructions, Opcode, concatInstructions, make } from '../code/code';
-import { SymbolScope, SymbolTable } from './symbolTable';
+import { CompiledFunction, concatInstructions, Instructions, make, Opcode } from '../code/code';
+import { _Symbol, SymbolScope, SymbolTable } from './symbolTable';
 
 export class Compiler {
   constants: InternalObject[];
@@ -32,7 +33,11 @@ export class Compiler {
 
   constructor(symbols: SymbolTable = new SymbolTable(), constants: InternalObject[] = []) {
     this.constants = constants;
+
     this.symbols = symbols;
+    Object.keys(builtinRecord).forEach((key, i) => {
+      this.symbols.defineBuiltIn(i, key);
+    });
 
     /* bogus values */
     const mainScope = new CompilationScope();
@@ -154,7 +159,7 @@ export class Compiler {
         if (!symbol) {
           throw new Error(`Identifier not found: ${node.value}`);
         }
-        this.emit(symbol.scope === SymbolScope.Local ? Opcode.OpGetLocal : Opcode.OpGetGlobal, symbol.index);
+        this.loadSymbol(symbol);
         break;
       case node instanceof LetStatement:
         this.compile(node.value);
@@ -326,6 +331,20 @@ export class Compiler {
     this.symbols = this.symbols.outer as SymbolTable;
 
     return instructions;
+  }
+
+  loadSymbol(symbol: _Symbol) {
+    switch (symbol.scope) {
+      case SymbolScope.Global:
+        this.emit(Opcode.OpGetGlobal, symbol.index);
+        break;
+      case SymbolScope.Local:
+        this.emit(Opcode.OpGetLocal, symbol.index);
+        break;
+      case SymbolScope.BuiltIn:
+        this.emit(Opcode.OpGetBuiltin, symbol.index);
+        break;
+    }
   }
 }
 
