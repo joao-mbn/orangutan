@@ -147,3 +147,109 @@ describe('Test define and resolve builtin', () => {
   }
 });
 
+describe('Test define and resolve free variable', () => {
+  const global = new SymbolTable();
+  global.define('a');
+  global.define('b');
+
+  const firstLocal = new SymbolTable(global);
+  firstLocal.define('c');
+  firstLocal.define('d');
+
+  const secondLocal = new SymbolTable(firstLocal);
+  secondLocal.define('e');
+  secondLocal.define('f');
+
+  const tests = [
+    {
+      table: firstLocal,
+      expectedSymbols: [
+        { name: 'a', scope: SymbolScope.Global, index: 0 },
+        { name: 'b', scope: SymbolScope.Global, index: 1 },
+        { name: 'c', scope: SymbolScope.Local, index: 0 },
+        { name: 'd', scope: SymbolScope.Local, index: 1 },
+      ],
+      expectedFreeSymbols: [],
+    },
+    {
+      table: secondLocal,
+      expectedSymbols: [
+        { name: 'a', scope: SymbolScope.Global, index: 0 },
+        { name: 'b', scope: SymbolScope.Global, index: 1 },
+        { name: 'c', scope: SymbolScope.Free, index: 0 },
+        { name: 'd', scope: SymbolScope.Free, index: 1 },
+        { name: 'e', scope: SymbolScope.Local, index: 0 },
+        { name: 'f', scope: SymbolScope.Local, index: 1 },
+      ],
+      expectedFreeSymbols: [
+        { name: 'c', scope: SymbolScope.Local, index: 0 },
+        { name: 'd', scope: SymbolScope.Local, index: 1 },
+      ],
+    },
+  ];
+
+  for (const { table, expectedSymbols, expectedFreeSymbols } of tests) {
+    for (const symbol of expectedSymbols) {
+      it('should resolve symbols', () => {
+        const result = table.resolve(symbol.name);
+        assert.ok(result, `Failed to resolve ${symbol.name}, expected ${symbol.name}, got ${result && result.name}`);
+
+        deepStrictEqual(result, symbol);
+      });
+    }
+
+    it('should have the correct number of free symbols', () => {
+      strictEqual(
+        table.freeSymbols.length,
+        expectedFreeSymbols.length,
+        `Incorrect number of free symbols, expected ${expectedFreeSymbols.length}, got ${table.freeSymbols.length}`,
+      );
+    });
+
+    for (const symbol of expectedFreeSymbols) {
+      it('should resolve free symbols', () => {
+        const result = table.freeSymbols[symbol.index];
+        assert.ok(result, `Failed to resolve ${symbol.name}, expected ${symbol.name}, got ${result && result.name}`);
+
+        deepStrictEqual(result, symbol, `Failed to resolve ${symbol.name}`);
+      });
+    }
+  }
+});
+
+describe('Test unresolved free variable', () => {
+  const global = new SymbolTable();
+  global.define('a');
+
+  const firstLocal = new SymbolTable(global);
+  firstLocal.define('c');
+
+  const secondLocal = new SymbolTable(firstLocal);
+  secondLocal.define('e');
+  secondLocal.define('f');
+
+  const expected = [
+    { name: 'a', scope: SymbolScope.Global, index: 0 },
+    { name: 'c', scope: SymbolScope.Free, index: 0 },
+    { name: 'e', scope: SymbolScope.Local, index: 0 },
+    { name: 'f', scope: SymbolScope.Local, index: 1 },
+  ];
+
+  for (const symbol of expected) {
+    it('should resolve symbols', () => {
+      const result = secondLocal.resolve(symbol.name);
+      assert.ok(result, `Failed to resolve ${symbol.name}, expected ${symbol.name}, got ${result && result.name}`);
+
+      deepStrictEqual(result, symbol);
+    });
+  }
+
+  const expectedUnresolvable = ['b', 'd'];
+
+  for (const name of expectedUnresolvable) {
+    it('should not resolve symbols', () => {
+      const result = secondLocal.resolve(name);
+      strictEqual(result, false, `Resolved ${name} when it should not have`);
+    });
+  }
+});

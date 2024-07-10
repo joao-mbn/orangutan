@@ -13,6 +13,7 @@ export enum ObjectType {
   BUILTIN_OBJECT = 'BUILTIN_OBJECT',
   ARRAY_OBJECT = 'ARRAY_OBJECT',
   COMPILED_FUNCTION_OBJECT = 'COMPILED_FUNCTION_OBJECT',
+  CLOSURE = 'CLOSURE',
 }
 
 export interface InternalObject {

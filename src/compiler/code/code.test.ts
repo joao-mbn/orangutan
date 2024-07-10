@@ -9,6 +9,7 @@ describe('Instructions', () => {
       make(Opcode.OpGetLocal, 1),
       make(Opcode.OpConstant, 2),
       make(Opcode.OpConstant, 65535),
+      make(Opcode.OpClosure, 65535, 255),
     ];
 
     const concated = concatInstructions(instructions);
@@ -17,7 +18,8 @@ describe('Instructions', () => {
 0000 OpAdd
 0001 OpGetLocal 1
 0003 OpConstant 2
-0006 OpConstant 65535`;
+0006 OpConstant 65535
+0009 OpClosure 65535 255`;
 
     assert.strictEqual(concated.asString(), expected);
   });
@@ -25,9 +27,10 @@ describe('Instructions', () => {
 
 describe('make', () => {
   const tests: { op: Opcode; operands: number[]; expected: Uint8Array }[] = [
-    { op: Opcode.OpConstant, operands: [65534], expected: new Uint8Array([0, 255, 254]) },
-    { op: Opcode.OpAdd, operands: [], expected: new Uint8Array([1]) },
-    { op: Opcode.OpGetLocal, operands: [255], expected: new Uint8Array([24, 255]) },
+    { op: Opcode.OpConstant, operands: [65534], expected: new Uint8Array([Opcode.OpConstant, 255, 254]) },
+    { op: Opcode.OpAdd, operands: [], expected: new Uint8Array([Opcode.OpAdd]) },
+    { op: Opcode.OpGetLocal, operands: [255], expected: new Uint8Array([Opcode.OpGetLocal, 255]) },
+    { op: Opcode.OpClosure, operands: [65534, 255], expected: new Uint8Array([Opcode.OpClosure, 255, 254, 255]) },
   ];
 
   tests.forEach((tt) => {
@@ -49,6 +52,8 @@ describe('readOperands', () => {
   const tests: { op: Opcode; operands: number[]; bytesRead: number }[] = [
     { op: Opcode.OpConstant, operands: [65535], bytesRead: 2 },
     { op: Opcode.OpAdd, operands: [], bytesRead: 0 },
+    { op: Opcode.OpGetLocal, operands: [255], bytesRead: 1 },
+    { op: Opcode.OpClosure, operands: [65535, 255], bytesRead: 3 },
   ];
 
   tests.forEach((tt) => {
@@ -71,3 +76,4 @@ describe('readOperands', () => {
     });
   });
 });
+

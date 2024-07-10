@@ -2,6 +2,7 @@ export enum SymbolScope {
   Global = 'GLOBAL',
   Local = 'LOCAL',
   BuiltIn = 'BUILTIN',
+  Free = 'FREE',
 }
 
 export interface _Symbol {
@@ -15,6 +16,7 @@ export class SymbolTable {
   constructor(
     public outer?: SymbolTable,
     public store: Map<string, _Symbol> = new Map<string, _Symbol>(),
+    public freeSymbols: _Symbol[] = [],
   ) {
     this.numberDefinitions = 0;
   }
@@ -34,8 +36,18 @@ export class SymbolTable {
 
   resolve(name: string): false | _Symbol {
     if (!this.store.has(name)) {
-      return this.outer?.resolve(name) ?? false;
+      const resolvedOuter = this.outer?.resolve(name);
+
+      if (!resolvedOuter) return false;
+
+      if (resolvedOuter.scope === SymbolScope.Global || resolvedOuter.scope === SymbolScope.BuiltIn) {
+        return resolvedOuter;
+      }
+
+      const symbol = this.defineFree(resolvedOuter);
+      return symbol;
     }
+
     return this.store.get(name) as _Symbol;
   }
 
@@ -48,5 +60,18 @@ export class SymbolTable {
     this.store.set(name, symbol);
     return symbol;
   }
-}
 
+  defineFree(original: _Symbol) {
+    this.freeSymbols.push(original);
+
+    const symbol = {
+      name: original.name,
+      scope: SymbolScope.Free,
+      index: this.freeSymbols.length - 1,
+    };
+
+    this.store.set(original.name, symbol);
+
+    return symbol;
+  }
+}

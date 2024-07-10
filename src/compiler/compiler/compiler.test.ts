@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { InternalObject } from '../../interpreter/object/object';
 import { parse, testIntegerObject, testStringObject } from '../../testTools';
-import { CompiledFunction, Instructions, Opcode, concatInstructions, make } from '../code/code';
+import { CompiledFunctionObject, Instructions, Opcode, concatInstructions, make } from '../code/code';
 import { Compiler } from './compiler';
 
 type TestCases = { input: string; expectedConstants: unknown[]; expectedInstructions: Instructions[] }[];
@@ -50,9 +50,9 @@ describe('Test Compiler', () => {
         case Array.isArray(expectedConstant) &&
           expectedConstant.every((e): e is Instructions => e instanceof Instructions):
           it('should be a function object', () => {
-            assert.ok(actual[i] instanceof CompiledFunction);
+            assert.ok(actual[i] instanceof CompiledFunctionObject);
           });
-          testInstructions(expectedConstant, (actual[i] as CompiledFunction).instructions);
+          testInstructions(expectedConstant, (actual[i] as CompiledFunctionObject).instructions);
           break;
         default:
           break;
@@ -473,7 +473,7 @@ describe('Test Compiler', () => {
           10,
           [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1), make(Opcode.OpAdd), make(Opcode.OpReturnValue)],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 2, 0), make(Opcode.OpPop)],
       },
       {
         input: 'fn () { 5 + 10; };',
@@ -482,7 +482,7 @@ describe('Test Compiler', () => {
           10,
           [make(Opcode.OpConstant, 0), make(Opcode.OpConstant, 1), make(Opcode.OpAdd), make(Opcode.OpReturnValue)],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 2, 0), make(Opcode.OpPop)],
       },
       {
         input: 'fn () { 1; 2 };',
@@ -491,12 +491,12 @@ describe('Test Compiler', () => {
           2,
           [make(Opcode.OpConstant, 0), make(Opcode.OpPop), make(Opcode.OpConstant, 1), make(Opcode.OpReturnValue)],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 2, 0), make(Opcode.OpPop)],
       },
       {
         input: 'fn () { };',
         expectedConstants: [[make(Opcode.OpReturn)]],
-        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 0, 0), make(Opcode.OpPop)],
       },
     ];
 
@@ -555,13 +555,13 @@ describe('Test Compiler', () => {
       {
         input: 'fn() { 24 }();',
         expectedConstants: [24, [make(Opcode.OpConstant, 0), make(Opcode.OpReturnValue)]],
-        expectedInstructions: [make(Opcode.OpConstant, 1), make(Opcode.OpCall, 0), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 1, 0), make(Opcode.OpCall, 0), make(Opcode.OpPop)],
       },
       {
         input: 'let noArg = fn() { 24 }; noArg();',
         expectedConstants: [24, [make(Opcode.OpConstant, 0), make(Opcode.OpReturnValue)]],
         expectedInstructions: [
-          make(Opcode.OpConstant, 1),
+          make(Opcode.OpClosure, 1, 0),
           make(Opcode.OpSetGlobal, 0),
           make(Opcode.OpGetGlobal, 0),
           make(Opcode.OpCall, 0),
@@ -572,7 +572,7 @@ describe('Test Compiler', () => {
         input: 'let oneArg = fn(a) { a; }; oneArg(24);',
         expectedConstants: [[make(Opcode.OpGetLocal, 0), make(Opcode.OpReturnValue)], 24],
         expectedInstructions: [
-          make(Opcode.OpConstant, 0),
+          make(Opcode.OpClosure, 0, 0),
           make(Opcode.OpSetGlobal, 0),
           make(Opcode.OpGetGlobal, 0),
           make(Opcode.OpConstant, 1),
@@ -596,7 +596,7 @@ describe('Test Compiler', () => {
           26,
         ],
         expectedInstructions: [
-          make(Opcode.OpConstant, 0),
+          make(Opcode.OpClosure, 0, 0),
           make(Opcode.OpSetGlobal, 0),
           make(Opcode.OpGetGlobal, 0),
           make(Opcode.OpConstant, 1),
@@ -619,7 +619,7 @@ describe('Test Compiler', () => {
         expectedInstructions: [
           make(Opcode.OpConstant, 0),
           make(Opcode.OpSetGlobal, 0),
-          make(Opcode.OpConstant, 1),
+          make(Opcode.OpClosure, 1, 0),
           make(Opcode.OpPop),
         ],
       },
@@ -634,7 +634,7 @@ describe('Test Compiler', () => {
             make(Opcode.OpReturnValue),
           ],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 1), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 1, 0), make(Opcode.OpPop)],
       },
       {
         input: 'fn() { let a = 55; let b = 77; a + b }',
@@ -652,7 +652,7 @@ describe('Test Compiler', () => {
             make(Opcode.OpReturnValue),
           ],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 2), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 2, 0), make(Opcode.OpPop)],
       },
     ];
 
@@ -683,11 +683,114 @@ describe('Test Compiler', () => {
         expectedConstants: [
           [make(Opcode.OpGetBuiltin, 0), make(Opcode.OpArray, 0), make(Opcode.OpCall, 1), make(Opcode.OpReturnValue)],
         ],
-        expectedInstructions: [make(Opcode.OpConstant, 0), make(Opcode.OpPop)],
+        expectedInstructions: [make(Opcode.OpClosure, 0, 0), make(Opcode.OpPop)],
+      },
+    ];
+
+    testCompiler(tests);
+  });
+
+  describe('Test closures', () => {
+    const tests: TestCases = [
+      {
+        input: `
+        fn(a) {
+          fn(b) { a + b };
+        }`,
+        expectedConstants: [
+          [make(Opcode.OpGetFree, 0), make(Opcode.OpGetLocal, 0), make(Opcode.OpAdd), make(Opcode.OpReturnValue)],
+          [make(Opcode.OpGetLocal, 0), make(Opcode.OpClosure, 0, 1), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpClosure, 1, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: `
+        fn(a) {
+          fn(b) {
+            fn (c) {
+              a + b + c
+            };
+          };
+        }`,
+        expectedConstants: [
+          [
+            make(Opcode.OpGetFree, 0),
+            make(Opcode.OpGetFree, 1),
+            make(Opcode.OpAdd),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpAdd),
+            make(Opcode.OpReturnValue),
+          ],
+          [
+            make(Opcode.OpGetFree, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpClosure, 0, 2),
+            make(Opcode.OpReturnValue),
+          ],
+          [make(Opcode.OpGetLocal, 0), make(Opcode.OpClosure, 1, 1), make(Opcode.OpReturnValue)],
+        ],
+        expectedInstructions: [make(Opcode.OpClosure, 2, 0), make(Opcode.OpPop)],
+      },
+      {
+        input: `
+        let global = 55;
+
+        fn() {
+          let a = 66;
+
+          fn() {
+            let b = 77;
+
+            fn() {
+              let c = 88;
+
+              global + a + b + c;
+            }
+          }
+        }
+        `,
+        expectedConstants: [
+          55,
+          66,
+          77,
+          88,
+          [
+            make(Opcode.OpConstant, 3),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpGetGlobal, 0),
+            make(Opcode.OpGetFree, 0),
+            make(Opcode.OpAdd),
+            make(Opcode.OpGetFree, 1),
+            make(Opcode.OpAdd),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpAdd),
+            make(Opcode.OpReturnValue),
+          ],
+          [
+            make(Opcode.OpConstant, 2),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpGetFree, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpClosure, 4, 2),
+            make(Opcode.OpReturnValue),
+          ],
+          [
+            make(Opcode.OpConstant, 1),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpClosure, 5, 1),
+            make(Opcode.OpReturnValue),
+          ],
+        ],
+        expectedInstructions: [
+          make(Opcode.OpConstant, 0),
+          make(Opcode.OpSetGlobal, 0),
+          make(Opcode.OpClosure, 6, 0),
+          make(Opcode.OpPop),
+        ],
       },
     ];
 
     testCompiler(tests);
   });
 });
-

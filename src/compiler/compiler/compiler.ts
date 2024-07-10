@@ -21,7 +21,7 @@ import {
 } from '../../interpreter/ast/ast';
 import { builtinRecord } from '../../interpreter/object/builtins';
 import { IntegerObject, InternalObject, StringObject } from '../../interpreter/object/object';
-import { CompiledFunction, concatInstructions, Instructions, make, Opcode } from '../code/code';
+import { CompiledFunctionObject, concatInstructions, Instructions, make, Opcode } from '../code/code';
 import { _Symbol, SymbolScope, SymbolTable } from './symbolTable';
 
 export class Compiler {
@@ -215,10 +215,16 @@ export class Compiler {
           this.emit(Opcode.OpReturn);
         }
 
+        const freeSymbols = this.symbols.freeSymbols;
         const numberLocals = this.symbols.store.size;
         const instructions = this.leaveScope();
-        const compiledFunction = new CompiledFunction(instructions, numberLocals, node.parameters.length);
-        this.emit(Opcode.OpConstant, this.addConstant(compiledFunction));
+
+        for (const freeSymbol of freeSymbols) {
+          this.loadSymbol(freeSymbol);
+        }
+
+        const compiledFunction = new CompiledFunctionObject(instructions, numberLocals, node.parameters.length);
+        this.emit(Opcode.OpClosure, this.addConstant(compiledFunction), freeSymbols.length);
 
         break;
       case node instanceof ReturnStatement:
@@ -344,6 +350,9 @@ export class Compiler {
       case SymbolScope.BuiltIn:
         this.emit(Opcode.OpGetBuiltin, symbol.index);
         break;
+      case SymbolScope.Free:
+        this.emit(Opcode.OpGetFree, symbol.index);
+        break;
     }
   }
 }
@@ -374,4 +383,3 @@ export class CompilationScope {
     this.previousInstruction = { opcode: Opcode.OpConstant, position: -1 };
   }
 }
-

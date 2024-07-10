@@ -11,7 +11,7 @@ import {
   InternalObject,
   StringObject,
 } from '../../interpreter/object/object';
-import { CompiledFunction, Instructions, Opcode, readUint16 } from '../code/code';
+import { ClosureObject, CompiledFunctionObject, Instructions, Opcode, readUint16 } from '../code/code';
 import { Bytecode } from '../compiler/compiler';
 import { Frame } from './frame';
 
@@ -42,12 +42,13 @@ export class VM {
 
     this.stackPointer = 0;
 
-    const mainFunction = new CompiledFunction(
+    const mainFunction = new CompiledFunctionObject(
       bytecode.instructions,
       0 /* bogus value, mainFunction represents global scope */,
       0,
     );
-    const mainFrame = new Frame(mainFunction, 0);
+    const mainClosure = new ClosureObject(mainFunction, []);
+    const mainFrame = new Frame(mainClosure, 0);
 
     this.frames = new Array(MAX_FRAMES).fill(null);
     this.frames[0] = mainFrame;
@@ -186,6 +187,14 @@ export class VM {
           this.push(builtin);
 
           break;
+        case Opcode.OpGetFree:
+          const freeIndex = instructions[instructionPointer + 1];
+          this.currentFrame().instructionPointer++;
+
+          const currentClosure = this.currentFrame().closure;
+          this.push(currentClosure.free[freeIndex]);
+
+          break;
         case Opcode.OpArray:
           const size = readUint16(instructions.slice(instructionPointer + 1));
           this.currentFrame().instructionPointer += 2;
@@ -246,6 +255,14 @@ export class VM {
           }
 
           break;
+        case Opcode.OpClosure:
+          const constIndexClosure = readUint16(instructions.slice(instructionPointer + 1));
+          const numberFreeVariables = instructions[instructionPointer + 3];
+          this.currentFrame().instructionPointer += 3;
+
+          this.pushClosure(constIndexClosure, numberFreeVariables);
+
+          break;
         case Opcode.OpCall:
           const numberOfArguments = instructions[instructionPointer + 1];
           this.currentFrame().instructionPointer++;
@@ -286,6 +303,23 @@ export class VM {
     this.stackPointer++;
 
     return null;
+  }
+
+  pushClosure(constIndex: number, numberFreeVariables: number) {
+    const constant = this.constants[constIndex];
+
+    if (!(constant instanceof CompiledFunctionObject)) {
+      throw new Error(`not a function: ${constant.objectType()}`);
+    }
+
+    const freeVariables: InternalObject[] = [];
+    for (let i = 0; i < numberFreeVariables; i++) {
+      freeVariables.push(this.stack[this.stackPointer - numberFreeVariables + i]);
+    }
+    this.stackPointer -= numberFreeVariables;
+
+    const closure = new ClosureObject(constant, freeVariables);
+    this.push(closure);
   }
 
   pop() {
@@ -400,8 +434,8 @@ export class VM {
     const callee = this.stack[this.stackPointer - 1 - numberOfArguments];
 
     switch (true) {
-      case callee instanceof CompiledFunction:
-        this.callFunction(callee, numberOfArguments);
+      case callee instanceof ClosureObject:
+        this.callClosure(callee, numberOfArguments);
         break;
       case callee instanceof BuiltinFunctionObject:
         this.callBuiltin(callee, numberOfArguments);
@@ -411,15 +445,15 @@ export class VM {
     }
   }
 
-  callFunction(callee: CompiledFunction, numberOfArguments: number) {
-    if (callee.numberParameters !== numberOfArguments) {
-      throw new Error(`wrong number of arguments: want=${callee.numberParameters}, got=${numberOfArguments}`);
+  callClosure(callee: ClosureObject, numberOfArguments: number) {
+    if (callee.fn.numberParameters !== numberOfArguments) {
+      throw new Error(`wrong number of arguments: want=${callee.fn.numberParameters}, got=${numberOfArguments}`);
     }
 
     const frame = new Frame(callee, this.stackPointer - numberOfArguments);
     this.pushFrame(frame);
 
-    this.stackPointer = frame.basePointer + callee.numberLocals;
+    this.stackPointer = frame.basePointer + callee.fn.numberLocals;
   }
 
   callBuiltin(callee: BuiltinFunctionObject, numberOfArguments: number) {
@@ -435,4 +469,3 @@ export class VM {
     }
   }
 }
-

@@ -1,18 +1,17 @@
-import { CompiledFunction } from '../code/code';
+import { ClosureObject } from '../code/code';
 
 export class Frame {
   instructionPointer: number;
 
   constructor(
-    public fn: CompiledFunction,
+    public closure: ClosureObject,
     public basePointer: number,
   ) {
-    this.fn = fn;
     this.instructionPointer = -1;
   }
 
   instructions() {
-    return this.fn.instructions;
+    return this.closure.fn.instructions;
   }
 }
 

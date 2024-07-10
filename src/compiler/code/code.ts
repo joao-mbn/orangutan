@@ -30,6 +30,8 @@ export enum Opcode {
   OpGetLocal = 24,
   OpSetLocal = 25,
   OpGetBuiltin = 26,
+  OpClosure = 27,
+  OpGetFree = 28,
 }
 
 export interface Definition {
@@ -65,6 +67,8 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpGetLocal]: { name: 'OpGetLocal', operandWidths: [1] },
   [Opcode.OpSetLocal]: { name: 'OpSetLocal', operandWidths: [1] },
   [Opcode.OpGetBuiltin]: { name: 'OpGetBuiltin', operandWidths: [1] },
+  [Opcode.OpClosure]: { name: 'OpClosure', operandWidths: [2, 1] },
+  [Opcode.OpGetFree]: { name: 'OpGetFree', operandWidths: [1] },
 };
 
 export class Instructions extends Uint8Array {
@@ -120,6 +124,8 @@ export class Instructions extends Uint8Array {
         return definition.name;
       case 1:
         return `${definition.name} ${operands[0]}`;
+      case 2:
+        return `${definition.name} ${operands[0]} ${operands[1]}`;
       default:
         return `ERROR: unhandled operandCount of ${operandCount}`;
     }
@@ -215,7 +221,7 @@ export function readUint16(slice: Instructions): number {
   return (slice[0] << 8) | slice[1];
 }
 
-export class CompiledFunction implements InternalObject {
+export class CompiledFunctionObject implements InternalObject {
   constructor(
     public instructions: Instructions,
     public numberLocals: number,
@@ -231,3 +237,17 @@ export class CompiledFunction implements InternalObject {
   }
 }
 
+export class ClosureObject implements InternalObject {
+  constructor(
+    public fn: CompiledFunctionObject,
+    public free: InternalObject[],
+  ) {}
+
+  objectType() {
+    return ObjectType.CLOSURE;
+  }
+
+  inspect() {
+    return `Closure ${this.fn.inspect()}`;
+  }
+}
