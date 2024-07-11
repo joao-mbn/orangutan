@@ -32,6 +32,7 @@ export enum Opcode {
   OpGetBuiltin = 26,
   OpClosure = 27,
   OpGetFree = 28,
+  OpCurrentClosure = 29,
 }
 
 export interface Definition {
@@ -69,6 +70,7 @@ export const DEFINITIONS: Record<Opcode, Definition> = {
   [Opcode.OpGetBuiltin]: { name: 'OpGetBuiltin', operandWidths: [1] },
   [Opcode.OpClosure]: { name: 'OpClosure', operandWidths: [2, 1] },
   [Opcode.OpGetFree]: { name: 'OpGetFree', operandWidths: [1] },
+  [Opcode.OpCurrentClosure]: { name: 'OpCurrentClosure', operandWidths: [] },
 };
 
 export class Instructions extends Uint8Array {

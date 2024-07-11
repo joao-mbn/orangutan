@@ -335,10 +335,11 @@ export class FunctionLiteral implements Expression {
   constructor(
     public parameters: Identifier[],
     public body: BlockStatement,
+    public name?: string,
   ) {}
 
   asString(): string {
-    return `${this.tokenLiteral()}(${this.parameters.map((param) => param.asString()).join(', ')}) ${this.body.asString()}`;
+    return `${this.tokenLiteral()}${this.name ? ` ${this.name}` : ''}(${this.parameters.map((param) => param.asString()).join(', ')}) ${this.body.asString()}`;
   }
 
   expressionNode(): void {}

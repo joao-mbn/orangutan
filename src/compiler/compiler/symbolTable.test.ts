@@ -253,3 +253,30 @@ describe('Test unresolved free variable', () => {
     });
   }
 });
+
+describe('Test define and resolve function name', () => {
+  const global = new SymbolTable();
+  global.defineFunctionName('a');
+
+  const expected = { name: 'a', scope: SymbolScope.Function, index: 0 };
+  const result = global.resolve('a');
+
+  it('should resolve function name', () => {
+    assert.ok(result, `function name not resolvable ${expected.name}`);
+    deepStrictEqual(result, expected, `expected ${expected.name}, got ${result && result.name}`);
+  });
+});
+
+describe('Test shadowing function name', () => {
+  const global = new SymbolTable();
+  global.defineFunctionName('a');
+  global.define('a');
+
+  const expected = { name: 'a', scope: SymbolScope.Global, index: 0 };
+  const result = global.resolve('a');
+
+  it('should resolve function name', () => {
+    assert.ok(result, `function name not resolvable ${expected.name}`);
+    deepStrictEqual(result, expected, `expected ${expected.name}, got ${result && result.name}`);
+  });
+});

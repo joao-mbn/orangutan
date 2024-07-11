@@ -19,7 +19,7 @@ import {
   ReturnStatement,
   Statement,
   StringLiteral,
-  WhileExpression
+  WhileExpression,
 } from '../ast/ast';
 import { Lexer } from '../lexer/lexer';
 import { Token, TokenType } from '../token/token';
@@ -35,7 +35,7 @@ enum Precedence {
   PRODUCT, // *
   PREFIX, // -X or !X
   CALL, // myFunction(X)
-  INDEX
+  INDEX,
 }
 
 const tokenPrecedences: Map<TokenType, Precedence> = new Map([
@@ -50,7 +50,7 @@ const tokenPrecedences: Map<TokenType, Precedence> = new Map([
   [TokenType.SLASH, Precedence.PRODUCT],
   [TokenType.ASTERISK, Precedence.PRODUCT],
   [TokenType.LPAREN, Precedence.CALL],
-  [TokenType.LBRACKET, Precedence.INDEX]
+  [TokenType.LBRACKET, Precedence.INDEX],
 ]);
 
 export class Parser {
@@ -72,7 +72,7 @@ export class Parser {
     [TokenType.FUNCTION, this.parseFunctionLiteral.bind(this)],
     [TokenType.STRING, this.parseStringLiteral.bind(this)],
     [TokenType.LBRACKET, this.parseArrayLiteral.bind(this)],
-    [TokenType.LBRACE, this.parseHashLiteral.bind(this)]
+    [TokenType.LBRACE, this.parseHashLiteral.bind(this)],
   ]);
 
   infixParseFunctions: Map<TokenType, (node: Expression) => Expression | null> = new Map([
@@ -87,7 +87,7 @@ export class Parser {
     [TokenType.LT, this.parseInfixExpression.bind(this)],
     [TokenType.GT, this.parseInfixExpression.bind(this)],
     [TokenType.LPAREN, this.parseCallExpression.bind(this)],
-    [TokenType.LBRACKET, this.parseIndexExpression.bind(this)]
+    [TokenType.LBRACKET, this.parseIndexExpression.bind(this)],
   ]);
 
   constructor(lexer: Lexer) {
@@ -152,6 +152,10 @@ export class Parser {
     const expression = this.parseExpression(Precedence.LOWEST);
     if (expression == null) {
       return null;
+    }
+
+    if (expression instanceof FunctionLiteral) {
+      expression.name = name.value;
     }
 
     if (this.peekTokenIs(TokenType.SEMICOLON)) {
@@ -583,4 +587,3 @@ export class Parser {
     return { key, value };
   }
 }
-

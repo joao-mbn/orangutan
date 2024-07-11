@@ -6,7 +6,8 @@
     "compile": "tsc",
     "test": "npm run compile && node --test dist/**/**/*.test.js",
     "test-interpreter": "npm run compile && node --test dist/interpreter/**/*.test.js",
-    "test-compiler": "npm run compile && node --test dist/compiler/**/*.test.js"
+    "test-compiler": "npm run compile && node --test dist/compiler/**/*.test.js",
+    "benchmark": "npm run compile && node dist/benchmark.js"
   },
   "devDependencies": {
     "@types/node": "^18.19.28",
@@ -18,4 +19,3 @@
     "typescript": "^5.4.2"
   }
 }
-

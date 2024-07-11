@@ -793,4 +793,75 @@ describe('Test Compiler', () => {
 
     testCompiler(tests);
   });
+
+  describe('Test recursive functions', () => {
+    const tests: TestCases = [
+      {
+        input: `
+        let countDown = fn(x) {
+          countDown(x - 1);
+        };
+        countDown(1);
+        `,
+        expectedConstants: [
+          1,
+          [
+            make(Opcode.OpCurrentClosure, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpConstant, 0),
+            make(Opcode.OpSub),
+            make(Opcode.OpCall, 1),
+            make(Opcode.OpReturnValue),
+          ],
+          1,
+        ],
+        expectedInstructions: [
+          make(Opcode.OpClosure, 1, 0),
+          make(Opcode.OpSetGlobal, 0),
+          make(Opcode.OpGetGlobal, 0),
+          make(Opcode.OpConstant, 2),
+          make(Opcode.OpCall, 1),
+          make(Opcode.OpPop),
+        ],
+      },
+      {
+        input: `
+        let wrapper = fn() {
+          let countDown = fn(x) { countDown(x - 1); };
+          countDown(1);
+        };
+        wrapper();
+        `,
+        expectedConstants: [
+          1,
+          [
+            make(Opcode.OpCurrentClosure),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpConstant, 0),
+            make(Opcode.OpSub),
+            make(Opcode.OpCall, 1),
+            make(Opcode.OpReturnValue),
+          ],
+          1,
+          [
+            make(Opcode.OpClosure, 1, 0),
+            make(Opcode.OpSetLocal, 0),
+            make(Opcode.OpGetLocal, 0),
+            make(Opcode.OpConstant, 2),
+            make(Opcode.OpCall, 1),
+            make(Opcode.OpReturnValue),
+          ],
+        ],
+        expectedInstructions: [
+          make(Opcode.OpClosure, 3, 0),
+          make(Opcode.OpSetGlobal, 0),
+          make(Opcode.OpGetGlobal, 0),
+          make(Opcode.OpCall, 0),
+          make(Opcode.OpPop),
+        ],
+      },
+    ];
+
+    testCompiler(tests);
+  });
 });

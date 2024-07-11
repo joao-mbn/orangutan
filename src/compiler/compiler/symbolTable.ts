@@ -3,6 +3,7 @@ export enum SymbolScope {
   Local = 'LOCAL',
   BuiltIn = 'BUILTIN',
   Free = 'FREE',
+  Function = 'FUNCTION',
 }
 
 export interface _Symbol {
@@ -72,6 +73,16 @@ export class SymbolTable {
 
     this.store.set(original.name, symbol);
 
+    return symbol;
+  }
+
+  defineFunctionName(name: string) {
+    const symbol = {
+      name,
+      scope: SymbolScope.Function,
+      index: 0,
+    };
+    this.store.set(name, symbol);
     return symbol;
   }
 }

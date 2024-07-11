@@ -162,9 +162,10 @@ export class Compiler {
         this.loadSymbol(symbol);
         break;
       case node instanceof LetStatement:
+        const { scope, index: identifierIndex } = this.symbols.define(node.name.value);
+
         this.compile(node.value);
 
-        const { scope, index: identifierIndex } = this.symbols.define(node.name.value);
         this.emit(scope === SymbolScope.Local ? Opcode.OpSetLocal : Opcode.OpSetGlobal, identifierIndex);
         break;
       case node instanceof ArrayLiteral:
@@ -200,6 +201,10 @@ export class Compiler {
         break;
       case node instanceof FunctionLiteral:
         this.enterScope();
+
+        if (node.name) {
+          this.symbols.defineFunctionName(node.name);
+        }
 
         for (const param of node.parameters) {
           this.symbols.define(param.value);
@@ -352,6 +357,9 @@ export class Compiler {
         break;
       case SymbolScope.Free:
         this.emit(Opcode.OpGetFree, symbol.index);
+        break;
+      case SymbolScope.Function:
+        this.emit(Opcode.OpCurrentClosure);
         break;
     }
   }

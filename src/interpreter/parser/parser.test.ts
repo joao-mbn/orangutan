@@ -20,7 +20,7 @@ import {
   ReassignStatement,
   ReturnStatement,
   StringLiteral,
-  WhileExpression
+  WhileExpression,
 } from '../ast/ast';
 import { Parser } from './parser';
 
@@ -84,7 +84,7 @@ describe('Parser', () => {
     expression: InfixExpression,
     leftValue: string | number | boolean,
     operator: string,
-    rightValue: string | number | boolean
+    rightValue: string | number | boolean,
   ) {
     it('expression is infix expression', () => {
       assert.ok(expression instanceof InfixExpression);
@@ -102,7 +102,7 @@ describe('Parser', () => {
   function testReassignExpression(
     reassignStatement: ReassignStatement,
     expectedIdentifier: string,
-    expectedValue: number | string | boolean
+    expectedValue: number | string | boolean,
   ) {
     it('first statement is instance of ReassignStatement', () => {
       assert.ok(reassignStatement instanceof ReassignStatement);
@@ -119,7 +119,7 @@ describe('Parser', () => {
     const inputs = [
       { input: 'let x = 5;', expectedIdentifier: 'x', expectedValue: 5 },
       { input: 'let y = true;', expectedIdentifier: 'y', expectedValue: true },
-      { input: 'let foobar = y;', expectedIdentifier: 'foobar', expectedValue: 'y' }
+      { input: 'let foobar = y;', expectedIdentifier: 'foobar', expectedValue: 'y' },
     ];
 
     inputs.forEach(({ input, expectedIdentifier, expectedValue }) => {
@@ -146,7 +146,11 @@ describe('Parser', () => {
       const inputs = [
         { input: 'x = 5;', expectedIdentifier: 'x', expectedValue: 5 },
         { input: 'foobar = y;', expectedIdentifier: 'foobar', expectedValue: 'y' },
-        { input: 'myFunction = fn(x) { x + 5 };', expectedIdentifier: 'myFunction', expectedValue: 'fn(x) { (x + 5) }' }
+        {
+          input: 'myFunction = fn(x) { x + 5 };',
+          expectedIdentifier: 'myFunction',
+          expectedValue: 'fn(x) { (x + 5) }',
+        },
       ];
 
       inputs.forEach(({ input, expectedIdentifier, expectedValue }) => {
@@ -182,7 +186,7 @@ describe('Parser', () => {
     const inputs = [
       { input: 'return 5;', expectedValue: 5 },
       { input: 'return true;', expectedValue: true },
-      { input: 'return foobar;', expectedValue: 'foobar' }
+      { input: 'return foobar;', expectedValue: 'foobar' },
     ];
 
     inputs.forEach(({ input, expectedValue }) => {
@@ -242,7 +246,7 @@ describe('Parser', () => {
   describe('parse boolean literal expressions', () => {
     const booleanTests = [
       { input: 'true;', value: true },
-      { input: 'false;', value: false }
+      { input: 'false;', value: false },
     ];
 
     booleanTests.forEach(({ input, value }) => {
@@ -267,7 +271,7 @@ describe('Parser', () => {
       { input: '!5;', operator: '!', value: 5 },
       { input: '-15;', operator: '-', value: 15 },
       { input: '!true;', operator: '!', value: true },
-      { input: '!false;', operator: '!', value: false }
+      { input: '!false;', operator: '!', value: false },
     ];
 
     prefixTests.forEach(({ input, operator, value }) => {
@@ -307,7 +311,7 @@ describe('Parser', () => {
       { input: 'true != false;', leftValue: true, operator: '!=', rightValue: false },
       { input: 'false == false;', leftValue: false, operator: '==', rightValue: false },
       { input: 'true && true;', leftValue: true, operator: '&&', rightValue: true },
-      { input: 'true || false;', leftValue: true, operator: '||', rightValue: false }
+      { input: 'true || false;', leftValue: true, operator: '||', rightValue: false },
     ];
 
     infixTests.forEach(({ input, leftValue, operator, rightValue }) => {
@@ -327,7 +331,7 @@ describe('Parser', () => {
         (program.statements[0] as ExpressionStatement).expression as InfixExpression,
         leftValue,
         operator,
-        rightValue
+        rightValue,
       );
     });
   });
@@ -358,7 +362,7 @@ describe('Parser', () => {
       { input: 'a + add(b * c) + d;', expected: '((a + add((b * c))) + d)' },
       {
         input: 'add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));',
-        expected: 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))'
+        expected: 'add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))',
       },
       { input: 'add(a + b + c * d / f + g);', expected: 'add((((a + b) + ((c * d) / f)) + g))' },
       { input: 'a * [1, 2, 3, 4][b * c] * d;', expected: '((a * ([1, 2, 3, 4][(b * c)])) * d)' },
@@ -366,7 +370,7 @@ describe('Parser', () => {
       { input: 'true || !false && true;', expected: '(true || ((!false) && true))' },
       { input: '(true || false) && true;', expected: '((true || false) && true)' },
       { input: '5 == add(2, 3) && true;', expected: '((5 == add(2, 3)) && true)' },
-      { input: '5 && "hello";', expected: '(5 && hello)' }
+      { input: '5 && "hello";', expected: '(5 && hello)' },
     ];
 
     tests.forEach(({ input, expected }) => {
@@ -536,7 +540,7 @@ describe('Parser', () => {
     const inputs = [
       { input: 'fn() {};', expected: [] },
       { input: 'fn(x) {};', expected: ['x'] },
-      { input: 'fn(x, y, z) {};', expected: ['x', 'y', 'z'] }
+      { input: 'fn(x, y, z) {};', expected: ['x', 'y', 'z'] },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -595,7 +599,7 @@ describe('Parser', () => {
     const inputs = [
       { input: 'add();', expected: [] },
       { input: 'add(1);', expected: ['1'] },
-      { input: 'add(1, 2 * 3, 4 + 5);', expected: ['1', '(2 * 3)', '(4 + 5)'] }
+      { input: 'add(1, 2 * 3, 4 + 5);', expected: ['1', '(2 * 3)', '(4 + 5)'] },
     ];
 
     inputs.forEach(({ input, expected }) => {
@@ -774,7 +778,7 @@ describe('Parser', () => {
 
       const expected = new Map([
         ['true', 1],
-        ['false', 2]
+        ['false', 2],
       ]);
 
       expression.pairs.forEach((value, key) => {
@@ -809,7 +813,7 @@ describe('Parser', () => {
 
       const expected = new Map([
         ['1', 1],
-        ['2', 2]
+        ['2', 2],
       ]);
 
       expression.pairs.forEach((value, key) => {
@@ -845,12 +849,37 @@ describe('Parser', () => {
       const expected = new Map([
         ['one', (expression: InfixExpression) => testInfixExpression(expression, 0, '+', 1)],
         ['two', (expression: InfixExpression) => testInfixExpression(expression, 10, '-', 8)],
-        ['three', (expression: InfixExpression) => testInfixExpression(expression, 15, '/', 5)]
+        ['three', (expression: InfixExpression) => testInfixExpression(expression, 15, '/', 5)],
       ]);
 
       expression.pairs.forEach((value, key) => {
         const testFunction = expected.get(key.tokenLiteral())!;
         testFunction(value as InfixExpression);
+      });
+    });
+
+    describe('parse function literals with names', () => {
+      const input = 'let myFunction = fn() { }';
+      const { program, parser } = getProgramAndParser(input);
+
+      it('has no errors', () => hasNoErrors(parser));
+
+      it('has 1 statement', () => {
+        assert.strictEqual(program.statements.length, 1);
+      });
+
+      const firstStatement = program.statements[0] as LetStatement;
+      it('first statement is instance of LetStatement', () => {
+        assert.ok(firstStatement instanceof LetStatement);
+      });
+
+      const expression = firstStatement.value as FunctionLiteral;
+      it('expression is instance of FunctionLiteral', () => {
+        assert.ok(expression instanceof FunctionLiteral);
+      });
+
+      it('function literal has name', () => {
+        assert.strictEqual(firstStatement.name.value, 'myFunction');
       });
     });
   });

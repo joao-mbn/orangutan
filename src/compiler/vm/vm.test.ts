@@ -374,6 +374,68 @@ describe('Test VM', () => {
       `,
       expected: 99,
     },
+    {
+      input: `
+      let countDown = fn(x) {
+        if (x == 0) {
+          return 0;
+        } else {
+          countDown(x - 1);
+        }
+      };
+      countDown(1);
+      `,
+      expected: 0,
+    },
+    {
+      input: `
+      let countDown = fn(x) {
+        if (x == 0) {
+          return 0;
+        } else {
+          countDown(x - 1);
+        }
+      };
+      let wrapper = fn() {
+        countDown(1);
+      };
+      wrapper();
+      `,
+      expected: 0,
+    },
+    {
+      input: `
+      let wrapper = fn() {
+        let countDown = fn(x) {
+          if (x == 0) {
+            return 0;
+          } else {
+            countDown(x - 1);
+          }
+        };
+        countDown(1);
+      };
+      wrapper();
+      `,
+      expected: 0,
+    },
+    {
+      input: `
+      let fibonacci = fn(x) {
+        if (x == 0) {
+        return 0;
+        } else {
+          if (x == 1) {
+            return 1;
+          } else {
+            fibonacci(x - 1) + fibonacci(x - 2);
+          }
+        }
+      };
+      fibonacci(15);
+      `,
+      expected: 610,
+    },
   ];
 
   tests.forEach(({ input, expected }) => {

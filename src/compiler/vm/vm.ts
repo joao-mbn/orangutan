@@ -263,6 +263,10 @@ export class VM {
           this.pushClosure(constIndexClosure, numberFreeVariables);
 
           break;
+        case Opcode.OpCurrentClosure:
+          this.push(this.currentFrame().closure);
+
+          break;
         case Opcode.OpCall:
           const numberOfArguments = instructions[instructionPointer + 1];
           this.currentFrame().instructionPointer++;
